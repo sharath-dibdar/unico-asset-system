@@ -1,4 +1,4 @@
-import { C, CATS } from "../constants.js";
+﻿import { C, CATS } from "../constants.js";
 import { fDate } from "../utils.js";
 import { Btn, Badge, EmptyState, Label } from "../components/UI.jsx";
 
@@ -23,7 +23,7 @@ function AuditDetail({ audit, assets, onStart, onRun, onDelete, onBack }) {
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:18, maxWidth:860 }}>
       <div style={{ display:"flex", gap:8, alignItems:"center", justifyContent:"space-between", flexWrap:"wrap" }}>
         <div>
-          <button onClick={onBack} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"7px 12px", borderRadius:8, fontSize:13, fontFamily:"'DM Sans',sans-serif", marginRight:12 }}>← Back</button>
+          <button onClick={onBack} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"7px 12px", borderRadius:8, fontSize:13, fontFamily:"'Archivo',sans-serif", marginRight:12 }}>← Back</button>
           <AuditBadge s={audit.status} />
         </div>
         <div style={{ display:"flex", gap:8 }}>
@@ -36,7 +36,7 @@ function AuditDetail({ audit, assets, onStart, onRun, onDelete, onBack }) {
 
       {/* Header card */}
       <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:14, padding:20 }}>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:18 }}>{audit.name}</div>
+        <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:18 }}>{audit.name}</div>
         <div style={{ fontSize:13, color:C.mu, marginTop:4 }}>Due: {fDate(audit.dueDate)} · {total} assets in scope</div>
         {audit.notes && <div style={{ fontSize:13, color:C.mu2, marginTop:6 }}>{audit.notes}</div>}
 
@@ -60,7 +60,7 @@ function AuditDetail({ audit, assets, onStart, onRun, onDelete, onBack }) {
 
       {/* Checklist table */}
       <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:14, padding:20 }}>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, marginBottom:14 }}>Checklist</div>
+        <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15, marginBottom:14 }}>Checklist</div>
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
             <thead>
@@ -79,7 +79,7 @@ function AuditDetail({ audit, assets, onStart, onRun, onDelete, onBack }) {
                       <div style={{ fontWeight:600 }}>{item.assetName||asset?.name||"—"}</div>
                       {CATS[asset?.cat] && <div style={{ fontSize:11, color:C.mu }}>{CATS[asset.cat].emoji} {CATS[asset.cat].label}</div>}
                     </td>
-                    <td style={{ padding:"10px 12px", fontFamily:"'DM Mono',monospace", fontSize:11, color:C.mu }}>{item.assetCode||asset?.code||"—"}</td>
+                    <td style={{ padding:"10px 12px", fontFamily:"'Noto Sans Mono',monospace", fontSize:11, color:C.mu }}>{item.assetCode||asset?.code||"—"}</td>
                     <td style={{ padding:"10px 12px", color:C.mu, fontSize:12 }}>{item.loc||asset?.loc||"—"}</td>
                     <td style={{ padding:"10px 12px" }}>
                       {item.found===null ? <span style={{ color:C.mu2 }}>—</span>

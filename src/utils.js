@@ -1,4 +1,4 @@
-import { CATS, ST_CFG } from "./constants.js";
+﻿import { CATS, ST_CFG } from "./constants.js";
 import * as XLSX from "xlsx";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────

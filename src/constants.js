@@ -1,4 +1,4 @@
-// ─── Asset Categories ────────────────────────────────────────────────────────
+﻿// ─── Asset Categories ────────────────────────────────────────────────────────
 export const CATS = {
   computing:   { label:"Computing",            px:"CPT", rate:0.40, emoji:"💻" },
   peripherals: { label:"Peripherals",           px:"PRP", rate:0.40, emoji:"🖱️" },
@@ -30,7 +30,7 @@ export const ST_CFG = {
 // ─── Colour palette ───────────────────────────────────────────────────────────
 export const C = {
   bg:"#0C0E17", sf:"#14171F", el:"#1C1F2C", br:"#252837",
-  ac:"#F97316", ac2:"#FBBF24", ok:"#10B981", err:"#EF4444",
+  ac:"#ffd200", acTx:"#0C0E17", ac2:"#FB923C", ok:"#10B981", err:"#EF4444",
   tx:"#EEF0F7", mu:"#7B82A0", mu2:"#4A5068",
 };
 

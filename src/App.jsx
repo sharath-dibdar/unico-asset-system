@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { C, CATS, INIT } from "./constants.js";
 import { calcDep, uid, nextCode, migrateAsset } from "./utils.js";
 import { Sidebar, TopBar, BottomNav } from "./components/Nav.jsx";
+import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
+import LoginPage from "./auth/LoginPage.jsx";
 
-import Dashboard  from "./views/Dashboard.jsx";
-import AssetList  from "./views/AssetList.jsx";
+import Dashboard   from "./views/Dashboard.jsx";
+import AssetList   from "./views/AssetList.jsx";
 import AssetDetail from "./views/AssetDetail.jsx";
-import Vendors    from "./views/Vendors.jsx";
-import Audits     from "./views/Audits.jsx";
-import Reports    from "./views/Reports.jsx";
-import Checkout   from "./views/Checkout.jsx";
+import Vendors     from "./views/Vendors.jsx";
+import Audits      from "./views/Audits.jsx";
+import Reports     from "./views/Reports.jsx";
+import Checkout    from "./views/Checkout.jsx";
+import UserAdmin   from "./views/UserAdmin.jsx";
 
 import AssetModal       from "./modals/AssetModal.jsx";
 import { CheckoutModal, ReturnModal } from "./modals/CheckoutModal.jsx";
@@ -20,6 +23,11 @@ import { CreateAuditModal, AuditRunModal } from "./modals/AuditModal.jsx";
 import PrintLabelsModal from "./modals/PrintLabelsModal.jsx";
 
 export default function App() {
+  return <AuthProvider><AppInner /></AuthProvider>;
+}
+
+function AppInner() {
+  const { me, loaded: authLoaded, isAdmin } = useAuth();
   const [assets,    setAssets]    = useState([]);
   const [vendors,   setVendors]   = useState([]);
   const [audits,    setAudits]    = useState([]);
@@ -149,8 +157,8 @@ export default function App() {
   const totalV  = assets.reduce((s,a)=>s+(a.price||0),0);
   const totalBV = assets.reduce((s,a)=>s+(CATS[a.cat]&&a.price&&a.pDate?calcDep(a.price,a.pDate,CATS[a.cat].rate).cur:0),0);
 
-  if (!loaded) return (
-    <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:C.bg, color:C.mu, fontFamily:"'DM Sans',sans-serif" }}>
+  if (!loaded || !authLoaded) return (
+    <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:C.bg, color:C.mu, fontFamily:"'Archivo',sans-serif" }}>
       <div style={{ textAlign:"center" }}>
         <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
         <div>Loading UAIS…</div>
@@ -158,14 +166,16 @@ export default function App() {
     </div>
   );
 
+  if (!me) return <LoginPage />;
+
   const liveAudit = modal?.type==="runAudit" ? (audits.find(a=>a.id===modal.data?.id)||modal.data) : null;
 
   return (
-    <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'DM Sans',sans-serif", color:C.tx, overflow:"hidden" }}>
+    <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'Archivo',sans-serif", color:C.tx, overflow:"hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Noto+Sans+Mono:wdth,wght@75,400;75,500;75,600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        input,select,textarea{background:${C.el};border:1px solid ${C.br};color:${C.tx};padding:10px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;width:100%;outline:none;transition:border-color 0.2s;}
+        input,select,textarea{background:${C.el};border:1px solid ${C.br};color:${C.tx};padding:10px 14px;border-radius:8px;font-family:'Archivo',sans-serif;font-size:13px;width:100%;outline:none;transition:border-color 0.2s;}
         input:focus,select:focus,textarea:focus{border-color:${C.ac};}
         select option{background:${C.el};color:${C.tx};}
         ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:${C.sf};}::-webkit-scrollbar-thumb{background:${C.br};border-radius:3px;}
@@ -183,13 +193,14 @@ export default function App() {
         <TopBar view={view} onAdd={()=>openAdd()} onBack={()=>{ if(view==="detail") setView("list"); else if(view==="audit") setView("audits"); }} selectedName={view==="detail"&&sel?sel.name:null} />
 
         <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
-          {view==="dashboard" && <Dashboard assets={assets} vendors={vendors} audits={audits} checkouts={checkouts} openDetail={openDetail} totalV={totalV} totalBV={totalBV} setView={setView} />}
-          {view==="list"      && <AssetList filtered={filtered} q={q} setQ={setQ} catF={catF} setCatF={setCatF} stF={stF} setStF={setStF} openDetail={openDetail} />}
-          {view==="detail" && sel && <AssetDetail asset={sel} onEdit={()=>openAdd(sel)} onDelete={deleteAsset} onCheckout={a=>setModal({type:"checkout",data:{asset:a}})} onDispose={a=>setModal({type:"disposal",data:a})} onUpdate={updateAsset} />}
-          {view==="vendors"   && <Vendors vendors={vendors} assets={assets} onAdd={()=>setModal({type:"vendor"})} onEdit={v=>setModal({type:"vendor",data:v})} onDelete={deleteVendor} />}
-          {view==="audits"    && <Audits audits={audits} assets={assets} setView={setView} onCreateAudit={()=>setModal({type:"createAudit"})} onStartAudit={startAudit} onRunAudit={a=>setModal({type:"runAudit",data:a})} onDeleteAudit={deleteAudit} onUpdateAudit={a=>setAudits(p=>p.map(x=>x.id===a.id?a:x))} />}
-          {view==="reports"   && <Reports assets={assets} checkouts={checkouts} vendors={vendors} />}
-          {view==="checkout"  && <Checkout checkouts={checkouts} assets={assets} onReturn={co=>setModal({type:"return",data:co})} onNewCheckout={()=>setModal({type:"checkout"})} />}
+          {view==="dashboard"  && <Dashboard assets={assets} vendors={vendors} audits={audits} checkouts={checkouts} openDetail={openDetail} totalV={totalV} totalBV={totalBV} setView={setView} isAdmin={isAdmin} />}
+          {view==="list"       && <AssetList filtered={filtered} q={q} setQ={setQ} catF={catF} setCatF={setCatF} stF={stF} setStF={setStF} openDetail={openDetail} isAdmin={isAdmin} />}
+          {view==="detail" && sel && <AssetDetail asset={sel} isAdmin={isAdmin} onEdit={isAdmin?()=>openAdd(sel):null} onDelete={isAdmin?deleteAsset:null} onCheckout={a=>setModal({type:"checkout",data:{asset:a}})} onDispose={isAdmin?a=>setModal({type:"disposal",data:a}):null} onUpdate={updateAsset} />}
+          {view==="vendors"    && isAdmin && <Vendors vendors={vendors} assets={assets} onAdd={()=>setModal({type:"vendor"})} onEdit={v=>setModal({type:"vendor",data:v})} onDelete={deleteVendor} />}
+          {view==="audits"     && <Audits audits={audits} assets={assets} setView={setView} onCreateAudit={isAdmin?()=>setModal({type:"createAudit"}):null} onStartAudit={startAudit} onRunAudit={a=>setModal({type:"runAudit",data:a})} onDeleteAudit={isAdmin?deleteAudit:null} onUpdateAudit={a=>setAudits(p=>p.map(x=>x.id===a.id?a:x))} />}
+          {view==="reports"    && isAdmin && <Reports assets={assets} checkouts={checkouts} vendors={vendors} />}
+          {view==="checkout"   && <Checkout checkouts={checkouts} assets={assets} onReturn={co=>setModal({type:"return",data:co})} onNewCheckout={()=>setModal({type:"checkout"})} />}
+          {view==="useradmin"  && isAdmin && <UserAdmin />}
         </div>
 
         <BottomNav view={view} setView={setView} onAdd={()=>openAdd()} />

@@ -1,8 +1,8 @@
-import { C, CATS, ST_CFG } from "../constants.js";
+﻿import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, dTo, calcDep } from "../utils.js";
 import { Badge } from "../components/UI.jsx";
 
-export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setStF, openDetail }) {
+export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setStF, openDetail, isAdmin }) {
   return (
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:14 }}>
       {/* Filters */}
@@ -43,15 +43,17 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
                   <span style={{ fontSize:14, fontWeight:600 }}>{a.name}</span>
                   <Badge s={a.status} />
                 </div>
-                <div style={{ fontSize:11, color:C.mu, marginTop:2, fontFamily:"'DM Mono',monospace" }}>{a.code} · {a.make} · {a.loc}</div>
+                <div style={{ fontSize:11, color:C.mu, marginTop:2, fontFamily:"'Noto Sans Mono',monospace" }}>{a.code} · {a.make} · {a.loc}</div>
                 {a.assignTo && a.assignTo!=="Common Pool" && (
                   <div style={{ fontSize:11, color:C.mu, marginTop:1 }}>👤 {a.assignTo}</div>
                 )}
               </div>
-              <div style={{ textAlign:"right", flexShrink:0 }} className="dsk">
-                <div style={{ fontSize:14, fontWeight:700, color:C.tx }}>{fINR(a.price)}</div>
-                {dep && <div style={{ fontSize:11, color:C.mu }}>Book: {fINR(dep.cur)}</div>}
-              </div>
+              {isAdmin && (
+                <div style={{ textAlign:"right", flexShrink:0 }} className="dsk">
+                  <div style={{ fontSize:14, fontWeight:700, color:C.tx }}>{fINR(a.price)}</div>
+                  {dep && <div style={{ fontSize:11, color:C.mu }}>Book: {fINR(dep.cur)}</div>}
+                </div>
+              )}
               {wDot && <div style={{ width:8, height:8, borderRadius:"50%", background:wDot, flexShrink:0 }} title={wd<0?"Warranty expired":`${wd}d warranty left`} />}
               <span style={{ color:C.mu2, fontSize:16, flexShrink:0 }}>›</span>
             </div>

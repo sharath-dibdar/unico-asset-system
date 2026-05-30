@@ -1,4 +1,4 @@
-import { C, CATS, ST_CFG } from "../constants.js";
+﻿import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, fDate, calcDep, dTo } from "../utils.js";
 import { generateAssetCSV, generateDepCSV, generateTallyXML, generateZohoCSV, generateDisposalCSV, downloadFile } from "../utils.js";
 import { Section, Btn, Label } from "../components/UI.jsx";
@@ -36,13 +36,13 @@ export default function Reports({ assets, checkouts, vendors, onOpenExport }) {
   const expired  = assets.filter(a=>{ const d=dTo(a.wEnd); return d!==null&&d<0; });
 
   const TH = ({ children, right }) => <th style={{ padding:"8px 12px", textAlign:right?"right":"left", borderBottom:`1px solid ${C.br}`, color:C.mu, fontWeight:600, fontSize:10, textTransform:"uppercase", letterSpacing:"0.07em" }}>{children}</th>;
-  const TD = ({ children, mono, accent, right }) => <td style={{ padding:"9px 12px", textAlign:right?"right":"left", fontFamily:mono?"'DM Mono',monospace":"inherit", color:accent?C.ac2:C.tx, fontSize:13 }}>{children}</td>;
+  const TD = ({ children, mono, accent, right }) => <td style={{ padding:"9px 12px", textAlign:right?"right":"left", fontFamily:mono?"'Noto Sans Mono',monospace":"inherit", color:accent?C.ac2:C.tx, fontSize:13 }}>{children}</td>;
 
   return (
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
       {/* Quick export buttons */}
       <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:14, padding:20 }}>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, marginBottom:12 }}>Quick Exports</div>
+        <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15, marginBottom:12 }}>Quick Exports</div>
         <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
           <Btn onClick={()=>downloadFile(generateAssetCSV(assets),"unico-asset-register.csv","text/csv")} variant="secondary" style={{ fontSize:12 }}>⬇ Asset Register (CSV)</Btn>
           <Btn onClick={()=>downloadFile(generateDepCSV(assets),"unico-depreciation.csv","text/csv")} variant="secondary" style={{ fontSize:12 }}>⬇ Depreciation Schedule (CSV)</Btn>
@@ -62,7 +62,7 @@ export default function Reports({ assets, checkouts, vendors, onOpenExport }) {
         ].map(k=>(
           <div key={k.l} style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${C.br}`, borderRadius:12, padding:"16px 20px" }}>
             <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>{k.l}</div>
-            <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Syne',sans-serif", color:k.c }}>{k.v}</div>
+            <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:k.c }}>{k.v}</div>
           </div>
         ))}
       </div>
@@ -128,7 +128,7 @@ export default function Reports({ assets, checkouts, vendors, onOpenExport }) {
             {expired.slice(0,5).map(a=>{
               const d=dTo(a.wEnd);
               return <div key={a.id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${C.br}`, fontSize:13 }}>
-                <span>{a.name} <span style={{ color:C.mu, fontSize:11, fontFamily:"'DM Mono',monospace" }}>{a.code}</span></span>
+                <span>{a.name} <span style={{ color:C.mu, fontSize:11, fontFamily:"'Noto Sans Mono',monospace" }}>{a.code}</span></span>
                 <span style={{ color:C.err, fontWeight:600 }}>{Math.abs(d)}d ago</span>
               </div>;
             })}

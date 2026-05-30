@@ -1,4 +1,4 @@
-import { C, CATS } from "../constants.js";
+﻿import { C, CATS } from "../constants.js";
 import { fDate } from "../utils.js";
 import { Badge, Btn, EmptyState } from "../components/UI.jsx";
 
@@ -21,7 +21,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout })
         </div>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontSize:14, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.assetName}</div>
-          <div style={{ fontSize:11, color:C.mu, fontFamily:"'DM Mono',monospace", marginTop:1 }}>{c.assetCode}</div>
+          <div style={{ fontSize:11, color:C.mu, fontFamily:"'Noto Sans Mono',monospace", marginTop:1 }}>{c.assetCode}</div>
           <div style={{ display:"flex", gap:12, marginTop:4, flexWrap:"wrap" }}>
             <span style={{ fontSize:12, color:C.tx }}>👤 {c.assignedTo}</span>
             <span style={{ fontSize:12, color:C.mu }}>📍 {c.location||"—"}</span>
@@ -50,15 +50,15 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout })
       <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
         <div style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${C.br}`, borderRadius:12, padding:"16px 20px" }}>
           <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Out Now</div>
-          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Syne',sans-serif", color:C.ac2 }}>{out.length}</div>
+          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.ac2 }}>{out.length}</div>
         </div>
         <div style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${overdue.length>0?C.err+"40":C.br}`, borderRadius:12, padding:"16px 20px" }}>
           <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Overdue</div>
-          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Syne',sans-serif", color:overdue.length>0?C.err:C.mu }}>{overdue.length}</div>
+          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:overdue.length>0?C.err:C.mu }}>{overdue.length}</div>
         </div>
         <div style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${C.br}`, borderRadius:12, padding:"16px 20px" }}>
           <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Total Movements</div>
-          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Syne',sans-serif", color:C.tx }}>{checkouts.length}</div>
+          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.tx }}>{checkouts.length}</div>
         </div>
         <div style={{ display:"flex", alignItems:"center" }}>
           <Btn onClick={onNewCheckout} variant="primary">+ Check Out Asset</Btn>
@@ -67,7 +67,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout })
 
       {/* Currently out */}
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>Currently Out ({out.length})</div>
+        <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15 }}>Currently Out ({out.length})</div>
         {out.length===0
           ? <div style={{ color:C.mu, fontSize:14, padding:"12px 0" }}>All assets are currently in.</div>
           : out.map(c=><Row key={c.id} c={c} showReturn={true} />)
@@ -77,7 +77,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout })
       {/* Return history */}
       {returned.length>0 && (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>Recent Returns</div>
+          <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15 }}>Recent Returns</div>
           {returned.slice(0,10).map(c=><Row key={c.id} c={c} showReturn={false} />)}
         </div>
       )}

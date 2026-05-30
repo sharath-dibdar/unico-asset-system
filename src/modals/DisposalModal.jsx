@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { C, CATS, DISPOSAL_METHODS } from "../constants.js";
 import { fINR, calcDep } from "../utils.js";
 import { Label, Btn, Modal } from "../components/UI.jsx";
@@ -25,7 +25,7 @@ export default function DisposalModal({ asset, onDispose, onClose }) {
         {dep && (
           <div style={{ background:`${C.ac}10`, border:`1px solid ${C.ac}25`, borderRadius:10, padding:14 }}>
             <div style={{ fontSize:12, color:C.mu, marginBottom:6 }}>Current Book Value (WDV)</div>
-            <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Syne',sans-serif", color:C.ok }}>{fINR(bv)}</div>
+            <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.ok }}>{fINR(bv)}</div>
             <div style={{ fontSize:11, color:C.mu2, marginTop:2 }}>Original cost: {fINR(asset.price)} · Asset will be marked Retired</div>
           </div>
         )}

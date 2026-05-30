@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { C, VENDOR_CATS } from "../constants.js";
 import { uid } from "../utils.js";
 import { Label, Btn, Modal } from "../components/UI.jsx";
@@ -36,7 +36,7 @@ export default function VendorModal({ vendor, onSave, onClose }) {
           <div><Label>Website</Label><input value={form.website} onChange={e=>set("website",e.target.value)} placeholder="https://…" /></div>
         </div>
 
-        <div><Label>GST Number</Label><input value={form.gst} onChange={e=>set("gst",e.target.value)} placeholder="27AABCU9603R1ZX" style={{ fontFamily:"'DM Mono',monospace" }} /></div>
+        <div><Label>GST Number</Label><input value={form.gst} onChange={e=>set("gst",e.target.value)} placeholder="27AABCU9603R1ZX" style={{ fontFamily:"'Noto Sans Mono',monospace" }} /></div>
         <div><Label>Address</Label><textarea value={form.address} onChange={e=>set("address",e.target.value)} rows={2} style={{ resize:"vertical" }} placeholder="Street, City, State, PIN" /></div>
         <div><Label>Notes</Label><textarea value={form.notes} onChange={e=>set("notes",e.target.value)} rows={2} style={{ resize:"vertical" }} placeholder="Additional info, preferred contact time, etc." /></div>
       </div>

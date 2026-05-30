@@ -1,4 +1,4 @@
-import { C, CATS } from "../constants.js";
+﻿import { C, CATS } from "../constants.js";
 import { Btn, EmptyState, Label } from "../components/UI.jsx";
 
 export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
@@ -30,12 +30,12 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
             <div key={v.id} style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:14, padding:20, display:"flex", flexDirection:"column", gap:12 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:16, fontWeight:700, fontFamily:"'Syne',sans-serif", marginBottom:2 }}>{v.name}</div>
+                  <div style={{ fontSize:16, fontWeight:700, fontFamily:"'Archivo',sans-serif", marginBottom:2 }}>{v.name}</div>
                   {v.category && <span style={{ background:`${C.ac}15`, color:C.ac, padding:"2px 8px", borderRadius:6, fontSize:11, fontWeight:600 }}>{v.category}</span>}
                 </div>
                 <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
-                  <button onClick={()=>onEdit(v)} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
-                  <button onClick={()=>{ if(confirm(`Delete "${v.name}"?`)) onDelete(v.id); }} style={{ background:`${C.err}10`, border:`1px solid ${C.err}25`, color:C.err, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>✕</button>
+                  <button onClick={()=>onEdit(v)} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Archivo',sans-serif" }}>Edit</button>
+                  <button onClick={()=>{ if(confirm(`Delete "${v.name}"?`)) onDelete(v.id); }} style={{ background:`${C.err}10`, border:`1px solid ${C.err}25`, color:C.err, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Archivo',sans-serif" }}>✕</button>
                 </div>
               </div>
 
@@ -43,7 +43,7 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
                 {v.contact && <div style={{ fontSize:13, color:C.tx }}>👤 {v.contact}</div>}
                 {v.email   && <div style={{ fontSize:12, color:C.mu }}>✉  <a href={`mailto:${v.email}`} style={{ color:C.ac, textDecoration:"none" }}>{v.email}</a></div>}
                 {v.phone   && <div style={{ fontSize:12, color:C.mu }}>📞 {v.phone}</div>}
-                {v.gst     && <div style={{ fontSize:11, color:C.mu2, fontFamily:"'DM Mono',monospace" }}>GST: {v.gst}</div>}
+                {v.gst     && <div style={{ fontSize:11, color:C.mu2, fontFamily:"'Noto Sans Mono',monospace" }}>GST: {v.gst}</div>}
                 {v.website && <div style={{ fontSize:12, color:C.mu }}>🌐 <a href={v.website} target="_blank" rel="noreferrer" style={{ color:C.ac, textDecoration:"none" }}>{v.website.replace(/^https?:\/\//,"")}</a></div>}
                 {v.address && <div style={{ fontSize:12, color:C.mu2, marginTop:2 }}>📍 {v.address}</div>}
               </div>

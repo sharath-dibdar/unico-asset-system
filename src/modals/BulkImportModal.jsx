@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { C, CATS, ST_CFG } from "../constants.js";
 import { parseImportFile, downloadImportTemplate, uid, nextCode } from "../utils.js";
 import { Label, Btn, Modal } from "../components/UI.jsx";
@@ -107,7 +107,7 @@ export default function BulkImportModal({ assets, onImport, onClose }) {
                         <td style={{ padding:"8px 10px", fontWeight:600 }}>{r.name}</td>
                         <td style={{ padding:"8px 10px" }}>{CATS[r.cat]?.emoji} {CATS[r.cat]?.label||r.cat}</td>
                         <td style={{ padding:"8px 10px", color:C.mu }}>{r.make}</td>
-                        <td style={{ padding:"8px 10px", color:C.mu, fontFamily:"'DM Mono',monospace" }}>{r.pDate}</td>
+                        <td style={{ padding:"8px 10px", color:C.mu, fontFamily:"'Noto Sans Mono',monospace" }}>{r.pDate}</td>
                         <td style={{ padding:"8px 10px", color:C.ac2 }}>₹{Number(r.price||0).toLocaleString("en-IN")}</td>
                         <td style={{ padding:"8px 10px" }}>
                           <span style={{ background:`${C.ok}18`, color:C.ok, padding:"2px 8px", borderRadius:8, fontSize:11 }}>{ST_CFG[r.status]?.l||r.status}</span>

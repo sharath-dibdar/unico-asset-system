@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { C, CATS, SPEC_DEF, PAYMENT_MODES } from "../constants.js";
 import { calcDep, compressImage, fINR } from "../utils.js";
 import { Label, Btn } from "../components/UI.jsx";
@@ -40,7 +40,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
         {/* Header */}
         <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
           <div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:18 }}>{isEdit?"Edit Asset":"New Asset"}</div>
+            <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:800, fontSize:18 }}>{isEdit?"Edit Asset":"New Asset"}</div>
             <div style={{ fontSize:11, color:C.mu, marginTop:2 }}>Step {step} of {steps} — {stepLabels[step-1]}</div>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:24, lineHeight:1, padding:4 }}>×</button>
@@ -175,7 +175,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
                   </div>
                 ))}
                 {(form.documents||[]).length<5 && (
-                  <button onClick={()=>docRef.current?.click()} style={{ background:C.el, border:`1px dashed ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 14px", borderRadius:8, fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
+                  <button onClick={()=>docRef.current?.click()} style={{ background:C.el, border:`1px dashed ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 14px", borderRadius:8, fontSize:12, fontFamily:"'Archivo',sans-serif" }}>
                     + Attach Document
                   </button>
                 )}
@@ -189,7 +189,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
             <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
               <div>
                 <div style={{ fontSize:13, color:C.mu, marginBottom:14 }}>All insurance and AMC fields are optional.</div>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🛡 Insurance Details</div>
+                <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🛡 Insurance Details</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                     <div><Label>Insurer</Label><input value={form.insurance?.insurer||""} onChange={e=>setIns("insurer",e.target.value)} placeholder="e.g. New India Assurance" /></div>
@@ -204,7 +204,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
               </div>
 
               <div style={{ borderTop:`1px solid ${C.br}`, paddingTop:18 }}>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🔧 AMC Details</div>
+                <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🔧 AMC Details</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   <div><Label>AMC Provider</Label><input value={form.amcProvider||""} onChange={e=>set("amcProvider",e.target.value)} placeholder="Service centre / company" /></div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>

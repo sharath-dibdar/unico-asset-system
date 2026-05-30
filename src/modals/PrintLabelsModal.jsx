@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { C, CATS } from "../constants.js";
 import { Btn, Modal } from "../components/UI.jsx";
 
@@ -30,7 +30,7 @@ export default function PrintLabelsModal({ assets, onClose }) {
 <body>
 <div class="no-print" style="padding:12px;background:#f5f5f5;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;">
   <strong>UNICO QR Labels</strong> — ${selAssets.length} labels
-  <button onclick="window.print()" style="padding:8px 16px;background:#F97316;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;">🖨 Print</button>
+  <button onclick="window.print()" style="padding:8px 16px;background:#ffd200;color:#0C0E17;border:none;border-radius:6px;cursor:pointer;font-weight:700;">🖨 Print</button>
   <button onclick="window.close()" style="padding:8px 16px;background:#eee;border:none;border-radius:6px;cursor:pointer;">Close</button>
 </div>
 <div class="grid">
@@ -58,7 +58,7 @@ ${selAssets.map(a=>`  <div class="label">
         <div style={{ display:"flex", gap:10, alignItems:"center" }}>
           <span style={{ fontSize:13, color:C.mu }}>Label size:</span>
           {[["small","Small (80px)"],["medium","Medium (120px)"],["large","Large (160px)"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setLabelSize(v)} style={{ padding:"6px 14px", borderRadius:8, border:`2px solid ${labelSize===v?C.ac:C.br}`, background:labelSize===v?`${C.ac}15`:"transparent", color:labelSize===v?C.ac:C.mu, cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>{l}</button>
+            <button key={v} onClick={()=>setLabelSize(v)} style={{ padding:"6px 14px", borderRadius:8, border:`2px solid ${labelSize===v?C.ac:C.br}`, background:labelSize===v?`${C.ac}15`:"transparent", color:labelSize===v?C.ac:C.mu, cursor:"pointer", fontSize:12, fontFamily:"'Archivo',sans-serif" }}>{l}</button>
           ))}
         </div>
 
@@ -81,7 +81,7 @@ ${selAssets.map(a=>`  <div class="label">
               <div style={{ fontSize:18, flexShrink:0 }}>{CATS[a.cat]?.emoji}</div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</div>
-                <div style={{ fontSize:11, color:C.mu, fontFamily:"'DM Mono',monospace" }}>{a.code}</div>
+                <div style={{ fontSize:11, color:C.mu, fontFamily:"'Noto Sans Mono',monospace" }}>{a.code}</div>
               </div>
             </div>
           ))}

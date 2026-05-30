@@ -1,16 +1,16 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import { C, CATS, SPEC_DEF, SERVICE_TYPES } from "../constants.js";
 import { fINR, fDate, dTo, calcDep, uid } from "../utils.js";
 import { Badge, Label, FieldVal, Section, Btn, QRDisplay } from "../components/UI.jsx";
 
 const TAB = ({ id, active, onClick, children }) => (
-  <button onClick={()=>onClick(id)} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontSize:13, fontWeight:active?700:400, fontFamily:"'DM Sans',sans-serif", background:active?`${C.ac}18`:"transparent", color:active?C.ac:C.mu, transition:"all 0.15s" }}>
+  <button onClick={()=>onClick(id)} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontSize:13, fontWeight:active?700:400, fontFamily:"'Archivo',sans-serif", background:active?`${C.ac}18`:"transparent", color:active?C.ac:C.mu, transition:"all 0.15s" }}>
     {children}
   </button>
 );
 
-export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, onDispose, onUpdate }) {
+export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onCheckout, onDispose, onUpdate }) {
   const [tab, setTab]         = useState("info");
   const [svcForm, setSvcForm] = useState(null);
 
@@ -35,10 +35,10 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
 
   const tabs = [
     { id:"info",    l:"Info" },
-    { id:"finance", l:"Finance" },
+    ...(isAdmin ? [{ id:"finance", l:"Finance" }] : []),
     { id:"docs",    l:`Docs${(a.documents||[]).length>0?" ("+a.documents.length+")":""}` },
     { id:"service", l:`Service${(a.serviceLog||[]).length>0?" ("+a.serviceLog.length+")":""}` },
-    { id:"history", l:"History" },
+    ...(isAdmin ? [{ id:"history", l:"History" }] : []),
   ];
 
   return (
@@ -46,9 +46,9 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
       {/* Header actions */}
       <div style={{ display:"flex", gap:8, justifyContent:"flex-end", flexWrap:"wrap" }}>
         {!isDisposed && <Btn onClick={()=>onCheckout(a)} variant="secondary">⇄ Check Out</Btn>}
-        <Btn onClick={onEdit} variant="secondary">✏  Edit</Btn>
-        {!isDisposed && <Btn onClick={()=>onDispose(a)} variant="secondary" style={{ color:C.ac2 }}>♻  Dispose</Btn>}
-        <Btn onClick={()=>{ if(confirm(`Delete "${a.name}"?`)) onDelete(a.id); }} variant="danger">🗑  Delete</Btn>
+        {isAdmin && onEdit    && <Btn onClick={onEdit} variant="secondary">✏  Edit</Btn>}
+        {isAdmin && !isDisposed && onDispose && <Btn onClick={()=>onDispose(a)} variant="secondary" style={{ color:C.ac2 }}>♻  Dispose</Btn>}
+        {isAdmin && onDelete  && <Btn onClick={()=>{ if(confirm(`Delete "${a.name}"?`)) onDelete(a.id); }} variant="danger">🗑  Delete</Btn>}
       </div>
 
       {isDisposed && (
@@ -76,11 +76,11 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
             {a.wType&&a.wType!=="N/A"&&<div style={{ fontSize:12, color:C.mu, marginTop:2 }}>{a.wType}</div>}
           </div>
 
-          {/* Book value */}
-          {dep && (
+          {/* Book value — admin only */}
+          {isAdmin && dep && (
             <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:14, padding:16 }}>
               <Label>Book Value Today</Label>
-              <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Syne',sans-serif", color:C.ok }}>{fINR(dep.cur)}</div>
+              <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.ok }}>{fINR(dep.cur)}</div>
               <div style={{ fontSize:12, color:C.mu, marginTop:2 }}>{depPct}% depreciated</div>
               <div style={{ fontSize:11, color:C.mu2, marginTop:1 }}>WDV @ {Math.round(CATS[a.cat].rate*100)}% p.a.</div>
             </div>
@@ -126,13 +126,15 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px 24px" }}>
                   <FieldVal label="Purchase Date"  val={fDate(a.pDate)} />
                   <FieldVal label="Vendor"         val={a.vendor} />
-                  <div>
-                    <Label>Purchase Price</Label>
-                    <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Syne',sans-serif", color:C.ac2 }}>{fINR(a.price)}</div>
-                  </div>
-                  <FieldVal label="GST Amount"     val={a.gstAmount?fINR(a.gstAmount):null} />
-                  <FieldVal label="PO / Bill #"    val={[a.poNumber,a.billNumber].filter(Boolean).join(" / ")||null} mono />
-                  <FieldVal label="Payment Mode"   val={a.paymentMode} />
+                  {isAdmin && (
+                    <div>
+                      <Label>Purchase Price</Label>
+                      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.ac2 }}>{fINR(a.price)}</div>
+                    </div>
+                  )}
+                  {isAdmin && <FieldVal label="GST Amount"   val={a.gstAmount?fINR(a.gstAmount):null} />}
+                  {isAdmin && <FieldVal label="PO / Bill #"  val={[a.poNumber,a.billNumber].filter(Boolean).join(" / ")||null} mono />}
+                  {isAdmin && <FieldVal label="Payment Mode" val={a.paymentMode} />}
                 </div>
               </Section>
 
@@ -141,7 +143,7 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px 24px" }}>
                     <FieldVal label="AMC Provider"  val={a.amcProvider} />
                     <FieldVal label="AMC Period"    val={[a.amcStart&&fDate(a.amcStart), a.amcEnd&&fDate(a.amcEnd)].filter(Boolean).join(" → ")||null} />
-                    <FieldVal label="AMC Cost"      val={a.amcCost?fINR(a.amcCost):null} />
+                    {isAdmin && <FieldVal label="AMC Cost" val={a.amcCost?fINR(a.amcCost):null} />}
                     <FieldVal label="AMC Notes"     val={a.amcNotes} wide />
                   </div>
                 </Section>
@@ -153,8 +155,8 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px 24px" }}>
                     <FieldVal label="Insurer"        val={a.insurance.insurer} />
                     <FieldVal label="Policy Number"  val={a.insurance.policyNo} mono />
-                    <FieldVal label="Sum Insured"    val={a.insurance.coverage?fINR(a.insurance.coverage):null} accent />
-                    <FieldVal label="Annual Premium" val={a.insurance.premium?fINR(a.insurance.premium):null} />
+                    {isAdmin && <FieldVal label="Sum Insured"    val={a.insurance.coverage?fINR(a.insurance.coverage):null} accent />}
+                    {isAdmin && <FieldVal label="Annual Premium" val={a.insurance.premium?fINR(a.insurance.premium):null} />}
                     <FieldVal label="Renewal Date"   val={fDate(a.insurance.renewalDate)} />
                   </div>
                 </Section>
@@ -187,7 +189,7 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
                     {specDefs.map(([k,l]) => a.specs?.[k] ? (
                       <div key={k} style={{ background:C.el, borderRadius:9, padding:"10px 14px" }}>
                         <div style={{ fontSize:10, color:C.mu2, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>{l}</div>
-                        <div style={{ fontSize:13, fontWeight:600, fontFamily:"'DM Mono',monospace", color:C.ac }}>{a.specs[k]}</div>
+                        <div style={{ fontSize:13, fontWeight:600, fontFamily:"'Noto Sans Mono',monospace", color:C.ac }}>{a.specs[k]}</div>
                       </div>
                     ) : null)}
                   </div>
@@ -223,7 +225,7 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
                       <CartesianGrid strokeDasharray="3 3" stroke={C.br} />
                       <XAxis dataKey="yr" tick={{ fill:C.mu, fontSize:10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill:C.mu, fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${Math.round(v/1000)}K`} />
-                      <Tooltip formatter={v=>[fINR(v),"Book Value"]} contentStyle={{ background:C.el, border:`1px solid ${C.br}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:12 }} />
+                      <Tooltip formatter={v=>[fINR(v),"Book Value"]} contentStyle={{ background:C.el, border:`1px solid ${C.br}`, borderRadius:8, fontFamily:"'Archivo',sans-serif", fontSize:12 }} />
                       <Area type="monotone" dataKey="val" stroke={C.ac} strokeWidth={2.5} fill="url(#dg2)" dot={{ fill:C.ac, r:3 }} />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -238,10 +240,10 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
                     <tbody>
                       {dep.sched.map((s,i)=>(
                         <tr key={i} style={{ borderBottom:`1px solid ${C.br}` }}>
-                          <td style={{ padding:"10px 12px", fontFamily:"'DM Mono',monospace", color:C.mu }}>{s.fy}</td>
+                          <td style={{ padding:"10px 12px", fontFamily:"'Noto Sans Mono',monospace", color:C.mu }}>{s.fy}</td>
                           <td style={{ padding:"10px 12px", textAlign:"right" }}>{fINR(s.open)}</td>
-                          <td style={{ padding:"10px 12px", textAlign:"right", color:C.err, fontFamily:"'DM Mono',monospace" }}>− {fINR(s.dep)}</td>
-                          <td style={{ padding:"10px 12px", textAlign:"right", fontWeight:700, color:C.ok, fontFamily:"'DM Mono',monospace" }}>{fINR(s.close)}</td>
+                          <td style={{ padding:"10px 12px", textAlign:"right", color:C.err, fontFamily:"'Noto Sans Mono',monospace" }}>− {fINR(s.dep)}</td>
+                          <td style={{ padding:"10px 12px", textAlign:"right", fontWeight:700, color:C.ok, fontFamily:"'Noto Sans Mono',monospace" }}>{fINR(s.close)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -337,7 +339,7 @@ export default function AssetDetail({ asset: a, onEdit, onDelete, onCheckout, on
                 : [...(a.history||[])].reverse().map((h,i)=>(
                   <div key={i} style={{ padding:"12px 0", borderBottom:`1px solid ${C.br}` }}>
                     <div style={{ display:"flex", gap:10, marginBottom:6 }}>
-                      <span style={{ fontSize:11, color:C.mu, fontFamily:"'DM Mono',monospace" }}>{h.timestamp?.split("T")[0]||""} {h.timestamp?.split("T")[1]?.slice(0,5)||""}</span>
+                      <span style={{ fontSize:11, color:C.mu, fontFamily:"'Noto Sans Mono',monospace" }}>{h.timestamp?.split("T")[0]||""} {h.timestamp?.split("T")[1]?.slice(0,5)||""}</span>
                       <span style={{ background:`${C.ac}18`, color:C.ac, padding:"1px 8px", borderRadius:6, fontSize:11, fontWeight:700 }}>{h.action}</span>
                     </div>
                     {(h.changes||[]).map((c,j)=>(
