@@ -4,7 +4,21 @@
 -- ============================================================
 
 
+-- ─── Profiles ────────────────────────────────────────────────────────────────
+-- Stores user records. Admin pre-creates these; auth_id is filled on first login.
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  auth_id     UUID        UNIQUE,           -- linked to auth.users.id after first login
+  email       TEXT        NOT NULL UNIQUE,
+  name        TEXT        NOT NULL,
+  role        TEXT        NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+  active      BOOLEAN     NOT NULL DEFAULT true,
+  created_by  UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ─── Helper: check if the calling user is an active admin ────────────────────
+-- Defined after profiles exists, since this function body references it.
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN
 LANGUAGE SQL
@@ -19,20 +33,6 @@ AS $$
       AND active = true
   );
 $$;
-
-
--- ─── Profiles ────────────────────────────────────────────────────────────────
--- Stores user records. Admin pre-creates these; auth_id is filled on first login.
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_id     UUID        UNIQUE,           -- linked to auth.users.id after first login
-  email       TEXT        NOT NULL UNIQUE,
-  name        TEXT        NOT NULL,
-  role        TEXT        NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
-  active      BOOLEAN     NOT NULL DEFAULT true,
-  created_by  UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
