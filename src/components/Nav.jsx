@@ -2,7 +2,7 @@
 import { dTo } from "../utils.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 
-export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImport, onExport, onPrintLabels }) {
+export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImport, onExport, onPrintLabels, onScan }) {
   const { me, isAdmin, logout } = useAuth();
 
   const expired      = assets.filter(a => { const d = dTo(a.wEnd); return d !== null && d < 0; }).length;
@@ -40,10 +40,17 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
         </div>
       </div>
 
+      {/* Scan button — everyone */}
+      <div style={{ padding:"0 16px 10px" }}>
+        <button onClick={onScan} style={{ width:"100%", background:`${C.ac}18`, border:`1px solid ${C.ac}40`, color:C.ac, cursor:"pointer", padding:"10px", borderRadius:10, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+          📷 Scan QR
+        </button>
+      </div>
+
       {/* Add button — admin only */}
       {isAdmin && (
         <div style={{ padding:"0 16px 12px" }}>
-          <button onClick={onAdd} style={{ width:"100%", background:`${C.ac}18`, border:`1px solid ${C.ac}40`, color:C.ac, cursor:"pointer", padding:"10px", borderRadius:10, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>
+          <button onClick={onAdd} style={{ width:"100%", background:C.el, border:`1px solid ${C.br}`, color:C.tx, cursor:"pointer", padding:"10px", borderRadius:10, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>
             + New Asset
           </button>
         </div>
@@ -122,7 +129,7 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
   );
 }
 
-export function TopBar({ view, onAdd, onBack, selectedName }) {
+export function TopBar({ view, onAdd, onBack, onScan, selectedName }) {
   const { isAdmin } = useAuth();
   const titles = { dashboard:"Dashboard", list:"All Assets", detail:"Asset Detail", vendors:"Vendor Book", audits:"Physical Audits", audit:"Audit Detail", reports:"Reports", checkout:"Check-In / Out", useradmin:"Users & Access" };
   return (
@@ -138,16 +145,31 @@ export function TopBar({ view, onAdd, onBack, selectedName }) {
           {view === "detail" && selectedName && <div style={{ fontSize:11, color:C.mu, marginTop:2 }}>Asset Detail</div>}
         </div>
       </div>
-      {isAdmin && (
-        <button onClick={onAdd} style={{ background:C.ac, color:C.acTx, border:"none", cursor:"pointer", padding:"9px 18px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif", flexShrink:0 }}>
-          + Add Asset
+      <div style={{ display:"flex", gap:8, flexShrink:0 }} className="mob">
+        <button onClick={onScan} style={{ background:`${C.ac}18`, border:`1px solid ${C.ac}40`, color:C.ac, cursor:"pointer", padding:"9px 14px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>
+          📷
         </button>
-      )}
+        {isAdmin && (
+          <button onClick={onAdd} style={{ background:C.ac, color:C.acTx, border:"none", cursor:"pointer", padding:"9px 18px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>
+            + Add Asset
+          </button>
+        )}
+      </div>
+      <div style={{ display:"flex", gap:8, flexShrink:0 }} className="dsk">
+        <button onClick={onScan} style={{ background:`${C.ac}18`, border:`1px solid ${C.ac}40`, color:C.ac, cursor:"pointer", padding:"9px 14px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>
+          📷 Scan
+        </button>
+        {isAdmin && (
+          <button onClick={onAdd} style={{ background:C.ac, color:C.acTx, border:"none", cursor:"pointer", padding:"9px 18px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>
+            + Add Asset
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
-export function BottomNav({ view, setView, onAdd }) {
+export function BottomNav({ view, setView, onAdd, onScan }) {
   const { isAdmin } = useAuth();
   const items = [
     { id:"dashboard", icon:"⊞", l:"Home" },
@@ -163,6 +185,10 @@ export function BottomNav({ view, setView, onAdd }) {
           <span style={{ fontSize:9, fontFamily:"'Archivo',sans-serif" }}>{n.l}</span>
         </button>
       ))}
+      <button onClick={onScan} style={{ flex:1, background:"none", border:"none", cursor:"pointer", color:C.ac, padding:"10px 0 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+        <span style={{ fontSize:16 }}>📷</span>
+        <span style={{ fontSize:9, fontFamily:"'Archivo',sans-serif" }}>Scan</span>
+      </button>
       {isAdmin && (
         <button onClick={onAdd} style={{ flex:1, background:"none", border:"none", cursor:"pointer", color:C.ac, padding:"10px 0 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
           <span style={{ fontSize:16 }}>＋</span>

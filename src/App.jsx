@@ -22,6 +22,7 @@ import BulkImportModal  from "./modals/BulkImportModal.jsx";
 import VendorModal      from "./modals/VendorModal.jsx";
 import { CreateAuditModal, AuditRunModal } from "./modals/AuditModal.jsx";
 import PrintLabelsModal from "./modals/PrintLabelsModal.jsx";
+import ScanModal from "./modals/ScanModal.jsx";
 
 function GlobalStyles() {
   return (
@@ -258,10 +259,11 @@ function AppInner() {
     <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'Archivo',sans-serif", color:C.tx, overflow:"hidden" }}>
       <Sidebar view={view} setView={setView} assets={assets} vendors={vendors} audits={audits}
         onAdd={() => openAdd()} onImport={() => setModal({type:"bulkImport"})}
-        onExport={() => setView("reports")} onPrintLabels={() => setModal({type:"printLabels"})} />
+        onExport={() => setView("reports")} onPrintLabels={() => setModal({type:"printLabels"})}
+        onScan={() => setModal({type:"scan"})} />
 
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
-        <TopBar view={view} onAdd={() => openAdd()} onBack={() => { if(view==="detail") setView("list"); else if(view==="audit") setView("audits"); }} selectedName={view==="detail"&&sel?sel.name:null} />
+        <TopBar view={view} onAdd={() => openAdd()} onBack={() => { if(view==="detail") setView("list"); else if(view==="audit") setView("audits"); }} onScan={() => setModal({type:"scan"})} selectedName={view==="detail"&&sel?sel.name:null} />
 
         <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
           {view==="dashboard"  && <Dashboard assets={assets} vendors={vendors} audits={audits} checkouts={checkouts} openDetail={openDetail} totalV={totalV} totalBV={totalBV} setView={setView} isAdmin={isAdmin} />}
@@ -274,7 +276,7 @@ function AppInner() {
           {view==="useradmin"  && isAdmin && <UserAdmin />}
         </div>
 
-        <BottomNav view={view} setView={setView} onAdd={() => openAdd()} />
+        <BottomNav view={view} setView={setView} onAdd={() => openAdd()} onScan={() => setModal({type:"scan"})} />
       </div>
 
       {/* ─── Modals ────────────────────────────────────────────────────── */}
@@ -287,6 +289,15 @@ function AppInner() {
       {modal?.type==="createAudit" && <CreateAuditModal assets={assets} onSave={saveAudit} onClose={closeModal} />}
       {modal?.type==="runAudit"    && liveAudit && <AuditRunModal audit={liveAudit} assets={assets} onComplete={checks=>completeAudit(liveAudit.id,checks)} onClose={closeModal} />}
       {modal?.type==="printLabels" && <PrintLabelsModal assets={assets} onClose={closeModal} />}
+      {modal?.type==="scan"        && (
+        <ScanModal
+          assets={assets} checkouts={checkouts}
+          onCheckout={a => setModal({ type:"checkout", data:{ asset:a } })}
+          onReturn={co => setModal({ type:"return", data:co })}
+          onViewDetails={a => { openDetail(a); closeModal(); }}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 }
