@@ -70,7 +70,7 @@ export default function LoginPage() {
               <div>
                 <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>One-time password</div>
                 <input
-                  type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+                  type="text" inputMode="numeric" maxLength={10}
                   value={code} onChange={e => setCode(e.target.value.replace(/\D/g,""))}
                   placeholder="000000" required autoFocus
                   style={{ textAlign:"center", fontSize:26, letterSpacing:"0.3em", fontFamily:"'Noto Sans Mono',monospace" }}
