@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase.js";
 import { db } from "../lib/db.js";
 import { uid } from "../utils.js";
@@ -35,6 +35,15 @@ export function AuthProvider({ children }) {
   const [sessions,   setSessions] = useState([]);      // all device_sessions (admin view)
   const [loaded,     setLoaded]   = useState(false);   // auth resolved
   const [authError,  setAuthError]= useState("");      // shown on login page
+
+  // Refs mirror state for use inside the onAuthStateChange closure, which is
+  // registered once on mount — without these, it would always see the
+  // initial (null) values and re-resolve the profile on every tab-focus
+  // session refresh, wiping in-progress form state across the app.
+  const meRef      = useRef(null);
+  const mySessRef  = useRef(null);
+  useEffect(() => { meRef.current = me; }, [me]);
+  useEffect(() => { mySessRef.current = mySession; }, [mySession]);
 
   // ── Load supporting data once authenticated ──────────────────────────────
   const loadAdminData = useCallback(async () => {
@@ -136,8 +145,12 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user) {
-          // Avoid double-resolving on mount (getSession already handles it)
-          if (!me) resolveProfile(session.user);
+          // Only resolve if this is a genuinely different user than the one
+          // already signed in — Supabase re-fires SIGNED_IN on tab-focus
+          // session refresh, and we must not reset state for that.
+          if (!meRef.current || meRef.current.auth_id !== session.user.id) {
+            resolveProfile(session.user);
+          }
         } else if (event === "SIGNED_OUT") {
           setMe(null);
           setMySess(null);
@@ -146,7 +159,7 @@ export function AuthProvider({ children }) {
           setLoaded(true);
         } else if (event === "TOKEN_REFRESHED") {
           // Session refreshed — just touch last_active
-          if (mySession) db.sessions.touch(mySession.id);
+          if (mySessRef.current) db.sessions.touch(mySessRef.current.id);
         }
       }
     );

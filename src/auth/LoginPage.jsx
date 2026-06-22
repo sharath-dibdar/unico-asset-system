@@ -72,6 +72,7 @@ export default function LoginPage() {
                 <input
                   type="text" inputMode="numeric" maxLength={10}
                   value={code} onChange={e => setCode(e.target.value.replace(/\D/g,""))}
+                  onPaste={e => { e.preventDefault(); setCode(e.clipboardData.getData("text").replace(/\D/g,"").slice(0,10)); }}
                   placeholder="000000" required autoFocus
                   style={{ textAlign:"center", fontSize:26, letterSpacing:"0.3em", fontFamily:"'Noto Sans Mono',monospace" }}
                 />

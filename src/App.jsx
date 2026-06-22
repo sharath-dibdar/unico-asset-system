@@ -23,8 +23,30 @@ import VendorModal      from "./modals/VendorModal.jsx";
 import { CreateAuditModal, AuditRunModal } from "./modals/AuditModal.jsx";
 import PrintLabelsModal from "./modals/PrintLabelsModal.jsx";
 
+function GlobalStyles() {
+  return (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Noto+Sans+Mono:wdth,wght@75,400;75,500;75,600&display=swap');
+      *{box-sizing:border-box;margin:0;padding:0;}
+      input,select,textarea{background:${C.el};border:1px solid ${C.br};color:${C.tx};padding:10px 14px;border-radius:8px;font-family:'Archivo',sans-serif;font-size:13px;width:100%;outline:none;transition:border-color 0.2s;}
+      input:focus,select:focus,textarea:focus{border-color:${C.ac};}
+      select option{background:${C.el};color:${C.tx};}
+      ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:${C.sf};}::-webkit-scrollbar-thumb{background:${C.br};border-radius:3px;}
+      @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+      .fade{animation:fadeUp 0.22s ease;}
+      @media(max-width:768px){.dsk{display:none!important;}}
+      @media(min-width:769px){.mob{display:none!important;}}
+    `}</style>
+  );
+}
+
 export default function App() {
-  return <AuthProvider><AppInner /></AuthProvider>;
+  return (
+    <AuthProvider>
+      <GlobalStyles />
+      <AppInner />
+    </AuthProvider>
+  );
 }
 
 function AppInner() {
@@ -234,19 +256,6 @@ function AppInner() {
 
   return (
     <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'Archivo',sans-serif", color:C.tx, overflow:"hidden" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Noto+Sans+Mono:wdth,wght@75,400;75,500;75,600&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        input,select,textarea{background:${C.el};border:1px solid ${C.br};color:${C.tx};padding:10px 14px;border-radius:8px;font-family:'Archivo',sans-serif;font-size:13px;width:100%;outline:none;transition:border-color 0.2s;}
-        input:focus,select:focus,textarea:focus{border-color:${C.ac};}
-        select option{background:${C.el};color:${C.tx};}
-        ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:${C.sf};}::-webkit-scrollbar-thumb{background:${C.br};border-radius:3px;}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-        .fade{animation:fadeUp 0.22s ease;}
-        @media(max-width:768px){.dsk{display:none!important;}}
-        @media(min-width:769px){.mob{display:none!important;}}
-      `}</style>
-
       <Sidebar view={view} setView={setView} assets={assets} vendors={vendors} audits={audits}
         onAdd={() => openAdd()} onImport={() => setModal({type:"bulkImport"})}
         onExport={() => setView("reports")} onPrintLabels={() => setModal({type:"printLabels"})} />
