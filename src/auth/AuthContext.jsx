@@ -1,145 +1,245 @@
-﻿import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase.js";
+import { db } from "../lib/db.js";
 import { uid } from "../utils.js";
 
 const AuthCtx = createContext(null);
 
+// ─── Device fingerprint ──────────────────────────────────────────────────────
 function deviceInfo() {
   const ua = navigator.userAgent;
-  const browser = ua.includes("Edg") ? "Edge" : ua.includes("Firefox") ? "Firefox" : ua.includes("Chrome") ? "Chrome" : ua.includes("Safari") ? "Safari" : "Browser";
-  const os = ua.includes("Windows") ? "Windows" : ua.includes("Mac") ? "macOS" : ua.includes("Android") ? "Android" : ua.includes("Linux") ? "Linux" : "Unknown";
-  return { browser, os, ua: ua.slice(0, 150), screen: `${screen.width}×${screen.height}`, lang: navigator.language };
+  const browser =
+    ua.includes("Edg")     ? "Edge"    :
+    ua.includes("Firefox") ? "Firefox" :
+    ua.includes("Chrome")  ? "Chrome"  :
+    ua.includes("Safari")  ? "Safari"  : "Browser";
+  const os =
+    ua.includes("Windows") ? "Windows" :
+    ua.includes("Mac")     ? "macOS"   :
+    ua.includes("Android") ? "Android" :
+    ua.includes("iPhone") || ua.includes("iPad") ? "iOS" :
+    ua.includes("Linux")   ? "Linux"   : "Unknown";
+  return {
+    browser, os,
+    ua:     ua.slice(0, 150),
+    screen: `${screen.width}×${screen.height}`,
+    lang:   navigator.language,
+  };
 }
 
-const SEED_ADMIN = {
-  id: "admin-seed",
-  email: "admin@unico.app",
-  name: "Admin",
-  role: "admin",
-  active: true,
-  createdAt: new Date(0).toISOString(),
-  createdBy: null,
-};
-
+// ─── Provider ────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }) {
-  const [users,    setUsers]   = useState([]);
-  const [sessions, setSess]    = useState([]);
-  const [me,       setMe]      = useState(null);
-  const [mySession, setMySess] = useState(null);
-  const [loaded,   setLoaded]  = useState(false);
-  const otps = useRef(new Map()); // email → { code, expiresAt }
+  const [me,         setMe]       = useState(null);    // profile row
+  const [mySession,  setMySess]   = useState(null);    // device_sessions row
+  const [users,      setUsers]    = useState([]);      // all profiles (admin view)
+  const [sessions,   setSessions] = useState([]);      // all device_sessions (admin view)
+  const [loaded,     setLoaded]   = useState(false);   // auth resolved
+  const [authError,  setAuthError]= useState("");      // shown on login page
 
-  useEffect(() => {
-    let loadedUsers;
-    try {
-      const raw = localStorage.getItem("uais-users");
-      loadedUsers = raw ? JSON.parse(raw) : [SEED_ADMIN];
-      if (!raw) localStorage.setItem("uais-users", JSON.stringify([SEED_ADMIN]));
-    } catch { loadedUsers = [SEED_ADMIN]; }
-    setUsers(loadedUsers);
-
-    let loadedSessions;
-    try {
-      const raw = localStorage.getItem("uais-sessions");
-      loadedSessions = raw ? JSON.parse(raw) : [];
-    } catch { loadedSessions = []; }
-    setSess(loadedSessions);
-
-    // Restore current session
-    try {
-      const cs = localStorage.getItem("uais-current-session");
-      if (cs) {
-        const { token } = JSON.parse(cs);
-        const session = loadedSessions.find(s => s.token === token && !s.revoked);
-        const user    = session ? loadedUsers.find(u => u.id === session.userId && u.active) : null;
-        if (session && user) {
-          setMe(user);
-          setMySess(session);
-          // touch lastActive
-          const updated = loadedSessions.map(s => s.token === token ? { ...s, lastActive: new Date().toISOString() } : s);
-          localStorage.setItem("uais-sessions", JSON.stringify(updated));
-          setSess(updated);
-        } else {
-          localStorage.removeItem("uais-current-session");
-        }
-      }
-    } catch {}
-
-    setLoaded(true);
+  // ── Load supporting data once authenticated ──────────────────────────────
+  const loadAdminData = useCallback(async () => {
+    const [profs, sess] = await Promise.all([
+      db.profiles.loadAll(),
+      db.sessions.loadAll(),
+    ]);
+    setUsers(profs);
+    setSessions(sess);
   }, []);
 
-  useEffect(() => { if (loaded) localStorage.setItem("uais-users",    JSON.stringify(users));    }, [users,    loaded]);
-  useEffect(() => { if (loaded) localStorage.setItem("uais-sessions", JSON.stringify(sessions)); }, [sessions, loaded]);
+  // ── Process a Supabase auth user → find/create profile ──────────────────
+  const resolveProfile = useCallback(async (authUser) => {
+    if (!authUser) { setMe(null); setLoaded(true); return; }
 
-  // ── OTP ─────────────────────────────────────────────────────────────────────
-  function requestOTP(email) {
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.active);
-    if (!user) return { ok: false, error: "No active account with that email." };
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    otps.current.set(email.toLowerCase(), { code, expiresAt: Date.now() + 10 * 60 * 1000 });
-    return { ok: true, code }; // UI shows code in dev banner
-  }
+    const email = authUser.email.toLowerCase();
 
-  function verifyOTP(email, input) {
-    const entry = otps.current.get(email.toLowerCase());
-    if (!entry)                     return { ok: false, error: "No OTP found — please request a new one." };
-    if (Date.now() > entry.expiresAt) { otps.current.delete(email.toLowerCase()); return { ok: false, error: "OTP expired — please request a new one." }; }
-    if (entry.code !== input.trim()) return { ok: false, error: "Incorrect OTP." };
-    otps.current.delete(email.toLowerCase());
+    // 1. Find profile by auth_id (returning user)
+    let profile = await db.profiles.findByAuthId(authUser.id);
 
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.active);
-    if (!user) return { ok: false, error: "Account not found." };
+    if (!profile) {
+      // 2. Find profile by email (first login — admin pre-created the record)
+      const byEmail = await db.profiles.findByEmail(email);
 
-    const token   = uid();
-    const session = { id: uid(), userId: user.id, token, device: deviceInfo(), createdAt: new Date().toISOString(), lastActive: new Date().toISOString(), revoked: false };
-    setSess(p => [...p, session]);
-    localStorage.setItem("uais-current-session", JSON.stringify({ token }));
-    setMe(user);
-    setMySess(session);
+      if (byEmail && byEmail.active) {
+        // Link the Supabase auth UID to this profile
+        await db.profiles.update(byEmail.id, { auth_id: authUser.id });
+        profile = { ...byEmail, auth_id: authUser.id };
+      } else {
+        // 3. Bootstrap: if no profiles exist at all, make this user admin
+        const total = await db.profiles.count();
+        if (total === 0) {
+          const bootstrapProfile = {
+            auth_id:    authUser.id,
+            email,
+            name:       email.split("@")[0],
+            role:       "admin",
+            active:     true,
+            created_by: null,
+          };
+          const ok = await db.profiles.insert(bootstrapProfile);
+          if (ok) {
+            profile = await db.profiles.findByAuthId(authUser.id);
+          }
+        }
+      }
+
+      // Still no profile → this email isn't registered
+      if (!profile) {
+        setAuthError("No account found for this email. Ask an admin to add you.");
+        await supabase.auth.signOut();
+        setMe(null);
+        setLoaded(true);
+        return;
+      }
+    }
+
+    if (!profile.active) {
+      setAuthError("Your account has been deactivated. Contact an admin.");
+      await supabase.auth.signOut();
+      setMe(null);
+      setLoaded(true);
+      return;
+    }
+
+    // ── Create device session record ────────────────────────────────────────
+    const sessionId = uid();
+    const sessionRow = {
+      id:         sessionId,
+      user_id:    authUser.id,
+      profile_id: profile.id,
+      data:       deviceInfo(),
+      revoked:    false,
+      created_at: new Date().toISOString(),
+      last_active:new Date().toISOString(),
+    };
+    await db.sessions.insert(sessionRow);
+    setMySess(sessionRow);
+
+    setMe(profile);
+    setAuthError("");
+    setLoaded(true);
+
+    // Load admin data for UserAdmin view
+    await loadAdminData();
+  }, [loadAdminData]);
+
+  // ── Subscribe to Supabase auth state changes ─────────────────────────────
+  useEffect(() => {
+    // Check existing session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        resolveProfile(session.user);
+      } else {
+        setLoaded(true);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          // Avoid double-resolving on mount (getSession already handles it)
+          if (!me) resolveProfile(session.user);
+        } else if (event === "SIGNED_OUT") {
+          setMe(null);
+          setMySess(null);
+          setUsers([]);
+          setSessions([]);
+          setLoaded(true);
+        } else if (event === "TOKEN_REFRESHED") {
+          // Session refreshed — just touch last_active
+          if (mySession) db.sessions.touch(mySession.id);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── OTP login ────────────────────────────────────────────────────────────
+  async function requestOTP(email) {
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    });
+    if (error) return { ok: false, error: error.message };
     return { ok: true };
   }
 
-  // ── Session management ───────────────────────────────────────────────────────
-  function logout() {
-    if (mySession) setSess(p => p.map(s => s.id === mySession.id ? { ...s, revoked: true } : s));
-    localStorage.removeItem("uais-current-session");
-    setMe(null); setMySess(null);
+  async function verifyOTP(email, token) {
+    setAuthError("");
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    });
+    if (error) return { ok: false, error: "Invalid or expired code. Try again." };
+    // onAuthStateChange → SIGNED_IN → resolveProfile handles the rest
+    return { ok: true };
   }
 
-  function revokeSession(sessionId) {
-    setSess(p => p.map(s => s.id === sessionId ? { ...s, revoked: true } : s));
-    if (mySession?.id === sessionId) {
-      localStorage.removeItem("uais-current-session");
-      setMe(null); setMySess(null);
-    }
+  // ── Session management ───────────────────────────────────────────────────
+  async function logout() {
+    if (mySession) await db.sessions.revoke(mySession.id);
+    await supabase.auth.signOut();
+    // onAuthStateChange SIGNED_OUT clears state
   }
 
-  // ── User CRUD (admin only) ───────────────────────────────────────────────────
-  function addUser(data) {
-    const user = { id: uid(), ...data, active: true, createdAt: new Date().toISOString(), createdBy: me?.id };
-    setUsers(p => [...p, user]);
-    return user;
+  async function revokeSession(sessionId) {
+    await db.sessions.revoke(sessionId);
+    setSessions(p => p.map(s => s.id === sessionId ? { ...s, revoked: true } : s));
+    // If this is the current device, sign out
+    if (mySession?.id === sessionId) await supabase.auth.signOut();
   }
 
-  function updateUser(updated) {
-    setUsers(p => p.map(u => u.id === updated.id ? updated : u));
-    if (me?.id === updated.id) setMe(updated);
+  // ── User CRUD (admin only) ───────────────────────────────────────────────
+  async function addUser(data) {
+    const row = {
+      email:      data.email.toLowerCase(),
+      name:       data.name,
+      role:       data.role,
+      active:     true,
+      created_by: me?.id ?? null,
+    };
+    const ok = await db.profiles.insert(row);
+    if (ok) await loadAdminData();
+    return ok;
   }
 
-  function deactivateUser(id) {
+  async function updateUser(updated) {
+    const { id, ...rest } = updated;
+    await db.profiles.update(id, {
+      name:   rest.name,
+      role:   rest.role,
+      active: rest.active,
+    });
+    setUsers(p => p.map(u => u.id === id ? { ...u, ...rest } : u));
+    if (me?.id === id) setMe(prev => ({ ...prev, ...rest }));
+  }
+
+  async function deactivateUser(id) {
+    await db.profiles.update(id, { active: false });
+    await db.sessions.revokeAllForUser(
+      users.find(u => u.id === id)?.auth_id
+    );
     setUsers(p => p.map(u => u.id === id ? { ...u, active: false } : u));
-    // revoke all their sessions
-    setSess(p => p.map(s => s.userId === id ? { ...s, revoked: true } : s));
-    if (me?.id === id) { localStorage.removeItem("uais-current-session"); setMe(null); setMySess(null); }
+    setSessions(p => p.map(s => s.profile_id === id ? { ...s, revoked: true } : s));
+    // If admin deactivates themselves (unusual), sign out
+    if (me?.id === id) await supabase.auth.signOut();
   }
 
-  function reactivateUser(id) { setUsers(p => p.map(u => u.id === id ? { ...u, active: true } : u)); }
+  async function reactivateUser(id) {
+    await db.profiles.update(id, { active: true });
+    setUsers(p => p.map(u => u.id === id ? { ...u, active: true } : u));
+  }
 
   return (
     <AuthCtx.Provider value={{
       me, mySession, users, sessions,
-      loaded, isAdmin: me?.role === "admin",
+      loaded, authError,
+      isAdmin: me?.role === "admin",
       requestOTP, verifyOTP, logout,
       revokeSession, addUser, updateUser, deactivateUser, reactivateUser,
+      refreshAdminData: loadAdminData,
     }}>
       {children}
     </AuthCtx.Provider>
