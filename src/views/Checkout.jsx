@@ -1,8 +1,8 @@
-﻿import { C, CATS } from "../constants.js";
+import { C, CATS } from "../constants.js";
 import { fDate } from "../utils.js";
 import { Badge, Btn, EmptyState } from "../components/UI.jsx";
 
-export default function Checkout({ checkouts, assets, onReturn, onNewCheckout }) {
+export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, onReturnBatch }) {
   const out      = checkouts.filter(c=>c.status==="out").sort((a,b)=>new Date(b.checkoutDate)-new Date(a.checkoutDate));
   const returned = checkouts.filter(c=>c.status==="returned").sort((a,b)=>new Date(b.returnDate)-new Date(a.returnDate));
 
@@ -10,6 +10,18 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout })
     if (!c.expectedReturn) return false;
     return new Date(c.expectedReturn) < new Date();
   });
+
+  // Group anything sharing a workstationId or batchId (bundled / multi-scan checkouts)
+  const groupKey = c => c.workstationId || c.batchId || null;
+  const groupsMap = new Map();
+  const solo = [];
+  out.forEach(c => {
+    const k = groupKey(c);
+    if (!k) { solo.push(c); return; }
+    if (!groupsMap.has(k)) groupsMap.set(k, []);
+    groupsMap.get(k).push(c);
+  });
+  const groups = [...groupsMap.entries()];
 
   const Row = ({ c, showReturn }) => {
     const asset = assets.find(a=>a.id===c.assetId);
@@ -44,6 +56,46 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout })
     );
   };
 
+  const GroupCard = ({ groupKey: gk, items }) => {
+    const first = items[0];
+    const isWorkstation = !!first.workstationId;
+    const days = first.expectedReturn ? Math.ceil((new Date(first.expectedReturn)-new Date())/864e5) : null;
+    const anyOverdue = items.some(c => overdue.includes(c));
+    return (
+      <div style={{ background:C.sf, border:`1px solid ${anyOverdue?C.err+"50":C.br}`, borderRadius:12, padding:"14px 18px", display:"flex", flexDirection:"column", gap:10 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, flexWrap:"wrap" }}>
+          <div>
+            <div style={{ fontSize:11, color:C.ac, textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700, marginBottom:3 }}>
+              {isWorkstation ? "🖥️ Workstation bundle" : "🛒 Multi-item checkout"} · {items.length} item{items.length!==1?"s":""}
+            </div>
+            <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+              <span style={{ fontSize:13, color:C.tx, fontWeight:600 }}>👤 {first.assignedTo}</span>
+              <span style={{ fontSize:12, color:C.mu }}>📍 {first.location||"—"}</span>
+              <span style={{ fontSize:12, color:C.mu }}>🗂 {first.purpose}</span>
+            </div>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ fontSize:12, color:C.mu }}>Out: {fDate(first.checkoutDate)}</div>
+            {days!==null && (
+              <div style={{ fontSize:11, fontWeight:700, color:days<0?C.err:days===0?C.ac:C.mu, marginTop:2 }}>
+                {days<0?`${Math.abs(days)}d overdue`:days===0?"Due today":`Due in ${days}d`}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+          {items.map(c => {
+            const asset = assets.find(a => a.id === c.assetId);
+            return <span key={c.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"4px 10px", borderRadius:8 }}>{CATS[asset?.cat]?.emoji} {c.assetName}</span>;
+          })}
+        </div>
+
+        <Btn onClick={() => onReturnBatch(gk)} variant="success" style={{ alignSelf:"flex-start", fontSize:12, padding:"7px 14px" }}>Check In All ({items.length})</Btn>
+      </div>
+    );
+  };
+
   return (
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
       {/* Stats */}
@@ -70,7 +122,12 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout })
         <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15 }}>Currently Out ({out.length})</div>
         {out.length===0
           ? <div style={{ color:C.mu, fontSize:14, padding:"12px 0" }}>All assets are currently in.</div>
-          : out.map(c=><Row key={c.id} c={c} showReturn={true} />)
+          : (
+            <>
+              {groups.map(([gk, items]) => <GroupCard key={gk} groupKey={gk} items={items} />)}
+              {solo.map(c=><Row key={c.id} c={c} showReturn={true} />)}
+            </>
+          )
         }
       </div>
 

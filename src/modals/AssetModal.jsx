@@ -1,7 +1,7 @@
 ﻿import { useState, useRef } from "react";
 import { C, CATS, SPEC_DEF, PAYMENT_MODES } from "../constants.js";
 import { calcDep, compressImage, fINR } from "../utils.js";
-import { Label, Btn } from "../components/UI.jsx";
+import { Label, Btn, AssigneeSelect } from "../components/UI.jsx";
 
 const STEPS = ["Basic Info", "Procurement & Docs", "Insurance & AMC", "Technical Specs"];
 
@@ -85,7 +85,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                 <div><Label>Location</Label><input value={form.loc||""} onChange={e=>set("loc",e.target.value)} placeholder="Edit Desk 1, Studio…" /></div>
-                <div><Label>Assigned To</Label><input value={form.assignTo||""} onChange={e=>set("assignTo",e.target.value)} placeholder="Name / Common Pool" /></div>
+                <div><Label>Assigned To</Label><AssigneeSelect value={form.assignTo} onChange={v=>set("assignTo",v)} /></div>
               </div>
 
               {/* Photo upload */}

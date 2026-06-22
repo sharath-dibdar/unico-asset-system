@@ -51,6 +51,18 @@ export const db = {
     },
   },
 
+  workstations: {
+    load: async () => rows(await supabase.from('workstations').select('data').order('created_at')),
+    upsert: async (w) => {
+      const { error } = await supabase.from('workstations').upsert({ id: w.id, data: w }, { onConflict: 'id' });
+      if (error) console.warn('[db/workstations upsert]', error.message);
+    },
+    delete: async (id) => {
+      const { error } = await supabase.from('workstations').delete().eq('id', id);
+      if (error) console.warn('[db/workstations delete]', error.message);
+    },
+  },
+
   checkouts: {
     load: async () => rows(await supabase.from('checkouts').select('data').order('created_at')),
     insert: async (c, userId) => {

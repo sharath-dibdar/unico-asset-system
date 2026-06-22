@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import { C, CATS, CHECKOUT_PURPOSES } from "../constants.js";
 import { fINR } from "../utils.js";
-import { Label, Btn, Modal } from "../components/UI.jsx";
+import { Label, Btn, Modal, AssigneeSelect } from "../components/UI.jsx";
 
 export function CheckoutModal({ assets, preselectedAsset, onCheckout, onClose }) {
   const [form, setForm] = useState({
@@ -38,7 +38,7 @@ export function CheckoutModal({ assets, preselectedAsset, onCheckout, onClose })
           </div>
         )}
 
-        <div><Label>Assigned To *</Label><input value={form.assignedTo} onChange={e=>set("assignedTo",e.target.value)} placeholder="Person's name" /></div>
+        <div><Label>Assigned To *</Label><AssigneeSelect value={form.assignedTo} onChange={v=>set("assignedTo",v)} allowEmpty /></div>
 
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
           <div><Label>Purpose</Label>

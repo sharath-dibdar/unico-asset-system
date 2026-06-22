@@ -69,10 +69,12 @@ CREATE TABLE IF NOT EXISTS public.assets (
 
 ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated read assets"  ON public.assets FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admin insert assets"        ON public.assets FOR INSERT TO authenticated WITH CHECK (public.is_admin());
-CREATE POLICY "Admin update assets"        ON public.assets FOR UPDATE TO authenticated USING (public.is_admin());
-CREATE POLICY "Admin delete assets"        ON public.assets FOR DELETE TO authenticated USING (public.is_admin());
+CREATE POLICY "Authenticated read assets"   ON public.assets FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Admin insert assets"         ON public.assets FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+-- Any signed-in user can update assets: check-out/check-in changes status/assignTo
+-- on the asset row itself, and that action isn't admin-restricted in the UI.
+CREATE POLICY "Authenticated update assets" ON public.assets FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Admin delete assets"         ON public.assets FOR DELETE TO authenticated USING (public.is_admin());
 
 
 -- ─── Vendors ─────────────────────────────────────────────────────────────────
@@ -98,8 +100,29 @@ CREATE TABLE IF NOT EXISTS public.audits (
 
 ALTER TABLE public.audits ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated read audits" ON public.audits FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admin manage audits"       ON public.audits FOR ALL    TO authenticated USING (public.is_admin());
+CREATE POLICY "Authenticated read audits"   ON public.audits FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Admin insert audits"         ON public.audits FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+-- Any signed-in user can start/run/complete an audit (not admin-restricted in the UI).
+CREATE POLICY "Authenticated update audits" ON public.audits FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Admin delete audits"         ON public.audits FOR DELETE TO authenticated USING (public.is_admin());
+
+
+-- ─── Workstations ────────────────────────────────────────────────────────────
+-- A bundle of assets (e.g. CPU + monitor + keyboard) assigned/checked out as one unit.
+CREATE TABLE IF NOT EXISTS public.workstations (
+  id          TEXT        PRIMARY KEY,
+  data        JSONB       NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.workstations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated read workstations"   ON public.workstations FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Admin insert workstations"         ON public.workstations FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+-- Any signed-in user can check a workstation in/out (updates assignTo/status only).
+CREATE POLICY "Authenticated update workstations" ON public.workstations FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Admin delete workstations"         ON public.workstations FOR DELETE TO authenticated USING (public.is_admin());
 
 
 -- ─── Checkouts ───────────────────────────────────────────────────────────────
@@ -156,9 +179,10 @@ RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
 $$;
 
-DROP TRIGGER IF EXISTS assets_updated_at    ON public.assets;
-DROP TRIGGER IF EXISTS audits_updated_at    ON public.audits;
-DROP TRIGGER IF EXISTS checkouts_updated_at ON public.checkouts;
+DROP TRIGGER IF EXISTS assets_updated_at       ON public.assets;
+DROP TRIGGER IF EXISTS audits_updated_at       ON public.audits;
+DROP TRIGGER IF EXISTS checkouts_updated_at    ON public.checkouts;
+DROP TRIGGER IF EXISTS workstations_updated_at ON public.workstations;
 
 CREATE TRIGGER assets_updated_at
   BEFORE UPDATE ON public.assets
@@ -166,6 +190,10 @@ CREATE TRIGGER assets_updated_at
 
 CREATE TRIGGER audits_updated_at
   BEFORE UPDATE ON public.audits
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE TRIGGER workstations_updated_at
+  BEFORE UPDATE ON public.workstations
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 CREATE TRIGGER checkouts_updated_at

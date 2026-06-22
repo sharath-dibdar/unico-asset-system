@@ -57,9 +57,10 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
       )}
 
       {navGroup("Main")}
-      {navItem("dashboard", "⊞", "Dashboard")}
-      {navItem("list",      "≡", "All Assets")}
-      {navItem("checkout",  "⇄", "Check-In / Out", checkedOut)}
+      {navItem("dashboard",    "⊞",  "Dashboard")}
+      {navItem("list",         "≡",  "All Assets")}
+      {navItem("checkout",     "⇄",  "Check-In / Out", checkedOut)}
+      {navItem("workstations", "🖥️", "Workstations")}
 
       {isAdmin && (
         <>
@@ -131,7 +132,7 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
 
 export function TopBar({ view, onAdd, onBack, onScan, selectedName }) {
   const { isAdmin } = useAuth();
-  const titles = { dashboard:"Dashboard", list:"All Assets", detail:"Asset Detail", vendors:"Vendor Book", audits:"Physical Audits", audit:"Audit Detail", reports:"Reports", checkout:"Check-In / Out", useradmin:"Users & Access" };
+  const titles = { dashboard:"Dashboard", list:"All Assets", detail:"Asset Detail", vendors:"Vendor Book", audits:"Physical Audits", audit:"Audit Detail", reports:"Reports", checkout:"Check-In / Out", workstations:"Workstations", useradmin:"Users & Access" };
   return (
     <div style={{ background:C.sf, borderBottom:`1px solid ${C.br}`, padding:"14px 22px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, gap:12 }}>
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -172,9 +173,10 @@ export function TopBar({ view, onAdd, onBack, onScan, selectedName }) {
 export function BottomNav({ view, setView, onAdd, onScan }) {
   const { isAdmin } = useAuth();
   const items = [
-    { id:"dashboard", icon:"⊞", l:"Home" },
-    { id:"list",      icon:"≡",  l:"Assets" },
-    { id:"checkout",  icon:"⇄",  l:"Check-In/Out" },
+    { id:"dashboard",    icon:"⊞",  l:"Home" },
+    { id:"list",         icon:"≡",  l:"Assets" },
+    { id:"checkout",     icon:"⇄",  l:"Check-In/Out" },
+    { id:"workstations", icon:"🖥️", l:"Stations" },
     ...(isAdmin ? [{ id:"vendors", icon:"🏪", l:"Vendors" }] : [{ id:"audits", icon:"📋", l:"Audits" }]),
   ];
   return (

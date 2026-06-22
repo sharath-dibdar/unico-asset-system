@@ -14,6 +14,7 @@ import Audits      from "./views/Audits.jsx";
 import Reports     from "./views/Reports.jsx";
 import Checkout    from "./views/Checkout.jsx";
 import UserAdmin   from "./views/UserAdmin.jsx";
+import Workstations from "./views/Workstations.jsx";
 
 import AssetModal       from "./modals/AssetModal.jsx";
 import { CheckoutModal, ReturnModal } from "./modals/CheckoutModal.jsx";
@@ -23,6 +24,8 @@ import VendorModal      from "./modals/VendorModal.jsx";
 import { CreateAuditModal, AuditRunModal } from "./modals/AuditModal.jsx";
 import PrintLabelsModal from "./modals/PrintLabelsModal.jsx";
 import ScanModal from "./modals/ScanModal.jsx";
+import WorkstationModal from "./modals/WorkstationModal.jsx";
+import { WorkstationCheckoutModal, WorkstationReturnModal } from "./modals/WorkstationCheckoutModal.jsx";
 
 function GlobalStyles() {
   return (
@@ -53,11 +56,12 @@ export default function App() {
 function AppInner() {
   const { me, loaded: authLoaded, isAdmin } = useAuth();
 
-  const [assets,    setAssets]    = useState([]);
-  const [vendors,   setVendors]   = useState([]);
-  const [audits,    setAudits]    = useState([]);
-  const [checkouts, setCheckouts] = useState([]);
-  const [loaded,    setLoaded]    = useState(false);
+  const [assets,       setAssets]       = useState([]);
+  const [vendors,      setVendors]      = useState([]);
+  const [audits,       setAudits]       = useState([]);
+  const [checkouts,    setCheckouts]    = useState([]);
+  const [workstations, setWorkstations] = useState([]);
+  const [loaded,       setLoaded]       = useState(false);
 
   const [view,   setView]  = useState("dashboard");
   const [sel,    setSel]   = useState(null);   // selected asset
@@ -75,16 +79,18 @@ function AppInner() {
   // ─── Load all data from Supabase ─────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoaded(false);
-    const [a, v, au, co] = await Promise.all([
+    const [a, v, au, co, ws] = await Promise.all([
       db.assets.load(),
       db.vendors.load(),
       db.audits.load(),
       db.checkouts.load(),
+      db.workstations.load(),
     ]);
     setAssets(a.map(migrateAsset));
     setVendors(v);
     setAudits(au);
     setCheckouts(co);
+    setWorkstations(ws);
     setLoaded(true);
   }, []);
 
@@ -223,6 +229,137 @@ function AppInner() {
     await db.audits.delete(id);
   }
 
+  // ─── Workstations ────────────────────────────────────────────────────────
+  async function saveWorkstation(form) {
+    const old = form.id ? workstations.find(w => w.id === form.id) : null;
+    const saved = old ? { ...old, ...form } : { ...form, id:uid(), status:"active", assignTo:"", createdAt:new Date().toISOString() };
+
+    const removedIds = (old?.assetIds || []).filter(id => !saved.assetIds.includes(id));
+    const addedIds   = saved.assetIds.filter(id => !(old?.assetIds || []).includes(id));
+
+    setWorkstations(p => old ? p.map(w => w.id === saved.id ? saved : w) : [...p, saved]);
+    setAssets(p => p.map(a => {
+      if (removedIds.includes(a.id)) return { ...a, workstationId:null };
+      if (addedIds.includes(a.id))   return { ...a, workstationId:saved.id };
+      return a;
+    }));
+    closeModal();
+
+    await db.workstations.upsert(saved);
+    await Promise.all([
+      ...removedIds.map(id => db.assets.upsert({ ...assets.find(a => a.id === id), workstationId:null })),
+      ...addedIds.map(id => db.assets.upsert({ ...assets.find(a => a.id === id), workstationId:saved.id })),
+    ]);
+  }
+
+  async function deleteWorkstation(id) {
+    const ws = workstations.find(w => w.id === id);
+    setWorkstations(p => p.filter(w => w.id !== id));
+    setAssets(p => p.map(a => ws?.assetIds.includes(a.id) ? { ...a, workstationId:null } : a));
+    await db.workstations.delete(id);
+    if (ws) await Promise.all(ws.assetIds.map(aid => db.assets.upsert({ ...assets.find(a => a.id === aid), workstationId:null })));
+  }
+
+  async function doWorkstationCheckout(workstation, formData) {
+    const now = new Date().toISOString();
+    const checkoutDate = now.split("T")[0];
+    const newCheckouts = [];
+    const updatedAssets = [];
+
+    for (const assetId of workstation.assetIds) {
+      const asset = assets.find(a => a.id === assetId);
+      if (!asset) continue;
+      const co = { id:uid(), assetId, assignedTo:formData.assignedTo, purpose:formData.purpose, location:formData.location, expectedReturn:formData.expectedReturn, notes:formData.notes, assetCode:asset.code, assetName:asset.name, checkoutDate, status:"out", workstationId:workstation.id };
+      newCheckouts.push(co);
+      updatedAssets.push({ ...asset, status:"in_use", assignTo:formData.assignedTo, history:[...(asset.history||[]), { timestamp:now, action:"checked_out", changes:[{field:"assignedTo",old:asset.assignTo,new:formData.assignedTo}] }] });
+    }
+
+    const updatedWs = { ...workstation, assignTo:formData.assignedTo, status:"in_use" };
+
+    setCheckouts(p => [...p, ...newCheckouts]);
+    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
+    setWorkstations(p => p.map(w => w.id === workstation.id ? updatedWs : w));
+    closeModal();
+
+    await Promise.all([
+      ...newCheckouts.map(co => db.checkouts.insert(co, me?.auth_id)),
+      ...updatedAssets.map(a => db.assets.upsert(a)),
+      db.workstations.upsert(updatedWs),
+    ]);
+  }
+
+  async function doWorkstationReturn(workstation, returnData) {
+    const now = new Date().toISOString();
+    const openCheckouts = checkouts.filter(c => c.workstationId === workstation.id && c.status === "out");
+    const updatedCheckouts = openCheckouts.map(c => ({ ...c, ...returnData, status:"returned" }));
+    const updatedAssets = openCheckouts
+      .map(c => assets.find(a => a.id === c.assetId))
+      .filter(Boolean)
+      .map(a => ({ ...a, status:"active", history:[...(a.history||[]), { timestamp:now, action:"checked_in", changes:[] }] }));
+
+    const updatedWs = { ...workstation, assignTo:"", status:"active" };
+
+    setCheckouts(p => p.map(c => updatedCheckouts.find(u => u.id === c.id) || c));
+    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
+    setWorkstations(p => p.map(w => w.id === workstation.id ? updatedWs : w));
+    closeModal();
+
+    await Promise.all([
+      ...updatedCheckouts.map(co => db.checkouts.update(co)),
+      ...updatedAssets.map(a => db.assets.upsert(a)),
+      db.workstations.upsert(updatedWs),
+    ]);
+  }
+
+  // ─── Ad-hoc bulk checkout/check-in (cart scan, not tied to a workstation) ──
+  async function doBulkCheckout(assetIds, formData) {
+    const now = new Date().toISOString();
+    const checkoutDate = now.split("T")[0];
+    const batchId = uid();
+    const newCheckouts = [];
+    const updatedAssets = [];
+
+    for (const assetId of assetIds) {
+      const asset = assets.find(a => a.id === assetId);
+      if (!asset) continue;
+      const co = { id:uid(), assetId, assignedTo:formData.assignedTo, purpose:formData.purpose, location:formData.location, expectedReturn:formData.expectedReturn, notes:formData.notes, assetCode:asset.code, assetName:asset.name, checkoutDate, status:"out", batchId };
+      newCheckouts.push(co);
+      updatedAssets.push({ ...asset, status:"in_use", assignTo:formData.assignedTo, history:[...(asset.history||[]), { timestamp:now, action:"checked_out", changes:[{field:"assignedTo",old:asset.assignTo,new:formData.assignedTo}] }] });
+    }
+
+    setCheckouts(p => [...p, ...newCheckouts]);
+    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
+
+    await Promise.all([
+      ...newCheckouts.map(co => db.checkouts.insert(co, me?.auth_id)),
+      ...updatedAssets.map(a => db.assets.upsert(a)),
+    ]);
+    return batchId;
+  }
+
+  async function doBulkReturn(checkoutIds, returnData) {
+    const now = new Date().toISOString();
+    const targets = checkouts.filter(c => checkoutIds.includes(c.id) && c.status === "out");
+    const updatedCheckouts = targets.map(c => ({ ...c, ...returnData, status:"returned" }));
+    const updatedAssets = targets
+      .map(c => assets.find(a => a.id === c.assetId))
+      .filter(Boolean)
+      .map(a => ({ ...a, status:"active", history:[...(a.history||[]), { timestamp:now, action:"checked_in", changes:[] }] }));
+
+    setCheckouts(p => p.map(c => updatedCheckouts.find(u => u.id === c.id) || c));
+    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
+
+    await Promise.all([
+      ...updatedCheckouts.map(co => db.checkouts.update(co)),
+      ...updatedAssets.map(a => db.assets.upsert(a)),
+    ]);
+  }
+
+  function returnBatch(groupKey) {
+    const ids = checkouts.filter(c => (c.workstationId || c.batchId) === groupKey && c.status === "out").map(c => c.id);
+    doBulkReturn(ids, { returnDate:new Date().toISOString().split("T")[0], returnCondition:"Good", returnNotes:"" });
+  }
+
   // ─── Bulk import ─────────────────────────────────────────────────────────
   async function doBulkImport(newAssets) {
     setAssets(p => [...p, ...newAssets]);
@@ -272,7 +409,8 @@ function AppInner() {
           {view==="vendors"    && isAdmin && <Vendors vendors={vendors} assets={assets} onAdd={()=>setModal({type:"vendor"})} onEdit={v=>setModal({type:"vendor",data:v})} onDelete={deleteVendor} />}
           {view==="audits"     && <Audits audits={audits} assets={assets} setView={setView} onCreateAudit={isAdmin?()=>setModal({type:"createAudit"}):null} onStartAudit={startAudit} onRunAudit={a=>setModal({type:"runAudit",data:a})} onDeleteAudit={isAdmin?deleteAudit:null} onUpdateAudit={a=>{ const u={...a}; setAudits(p=>p.map(x=>x.id===a.id?u:x)); db.audits.upsert(u); }} />}
           {view==="reports"    && isAdmin && <Reports assets={assets} checkouts={checkouts} vendors={vendors} />}
-          {view==="checkout"   && <Checkout checkouts={checkouts} assets={assets} onReturn={co=>setModal({type:"return",data:co})} onNewCheckout={()=>setModal({type:"checkout"})} />}
+          {view==="checkout"   && <Checkout checkouts={checkouts} assets={assets} onReturn={co=>setModal({type:"return",data:co})} onNewCheckout={()=>setModal({type:"checkout"})} onReturnBatch={returnBatch} />}
+          {view==="workstations" && <Workstations workstations={workstations} assets={assets} isAdmin={isAdmin} onAdd={()=>setModal({type:"workstation"})} onEdit={w=>setModal({type:"workstation",data:w})} onDelete={deleteWorkstation} onCheckOut={w=>setModal({type:"workstationCheckout",data:w})} onCheckIn={w=>setModal({type:"workstationReturn",data:w})} />}
           {view==="useradmin"  && isAdmin && <UserAdmin />}
         </div>
 
@@ -289,11 +427,14 @@ function AppInner() {
       {modal?.type==="createAudit" && <CreateAuditModal assets={assets} onSave={saveAudit} onClose={closeModal} />}
       {modal?.type==="runAudit"    && liveAudit && <AuditRunModal audit={liveAudit} assets={assets} onComplete={checks=>completeAudit(liveAudit.id,checks)} onClose={closeModal} />}
       {modal?.type==="printLabels" && <PrintLabelsModal assets={assets} onClose={closeModal} />}
+      {modal?.type==="workstation"         && <WorkstationModal workstation={modal.data} assets={assets} onSave={saveWorkstation} onClose={closeModal} />}
+      {modal?.type==="workstationCheckout" && <WorkstationCheckoutModal workstation={modal.data} assets={assets} onCheckout={formData=>doWorkstationCheckout(modal.data,formData)} onClose={closeModal} />}
+      {modal?.type==="workstationReturn"   && <WorkstationReturnModal workstation={modal.data} assets={assets} onReturn={returnData=>doWorkstationReturn(modal.data,returnData)} onClose={closeModal} />}
       {modal?.type==="scan"        && (
         <ScanModal
           assets={assets} checkouts={checkouts}
-          onCheckout={a => setModal({ type:"checkout", data:{ asset:a } })}
-          onReturn={co => setModal({ type:"return", data:co })}
+          onBulkCheckout={doBulkCheckout}
+          onBulkReturn={doBulkReturn}
           onViewDetails={a => { openDetail(a); closeModal(); }}
           onClose={closeModal}
         />

@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { C, ST_CFG } from "../constants.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 export const Badge = ({ s }) => {
   const cfg = ST_CFG[s]||ST_CFG.active;
@@ -55,6 +56,18 @@ export const Btn = ({ children, onClick, variant="secondary", disabled, style:s 
     ghost:    { background:"none",color:C.mu, border:"none", padding:"6px 10px", fontSize:12 },
   };
   return <button onClick={disabled?undefined:onClick} style={{ ...base, ...v[variant] }}>{children}</button>;
+};
+
+export const AssigneeSelect = ({ value, onChange, allowEmpty }) => {
+  const { users } = useAuth();
+  const active = (users || []).filter(u => u.active).sort((a, b) => a.name.localeCompare(b.name));
+  return (
+    <select value={value || ""} onChange={e => onChange(e.target.value)}>
+      {allowEmpty && <option value="">— Unassigned —</option>}
+      <option value="Common Pool">Common Pool (shared)</option>
+      {active.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+    </select>
+  );
 };
 
 export const EmptyState = ({ icon="📦", title="Nothing here yet", sub="" }) => (
