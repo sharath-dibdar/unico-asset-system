@@ -31,19 +31,19 @@ export default function PrintLabelsModal({ assets, workstations = [], onClose })
   function printThermal() {
     const win = window.open("", "_blank", "width=700,height=500");
     if (!win) { alert("Allow popups to print labels"); return; }
+    // Thermal roll: page width=50mm, height=all labels stacked (gap sensor cuts at each 25mm label)
+    const totalH = selAssets.length * 25;
     const html = `<!DOCTYPE html>
 <html><head><title>QR Labels — UNICO</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  @page{size:50mm 25mm;margin:0;}
-  html,body{width:50mm;height:25mm;background:#fff;font-family:Arial,Helvetica,sans-serif;}
+  @page{size:50mm ${totalH}mm;margin:0;}
+  html,body{width:50mm;background:#fff;font-family:Arial,Helvetica,sans-serif;}
   .label{
     display:flex;align-items:center;
     width:50mm;height:25mm;
-    padding:2mm 2mm 2mm 1.5mm;gap:2mm;
-    page-break-after:always;break-after:page;
+    padding:1.5mm 2mm 1.5mm 1.5mm;gap:2mm;
   }
-  .label:last-child{page-break-after:avoid;break-after:avoid;}
   .qr{width:19mm;height:19mm;flex-shrink:0;display:block;}
   .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:0.8mm;justify-content:center;}
   .name{font-size:6.5pt;font-weight:700;line-height:1.25;word-break:break-word;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
@@ -55,9 +55,9 @@ export default function PrintLabelsModal({ assets, workstations = [], onClose })
 <body>
 <div class="no-print">
   <strong>🖨 UNICO — Thermal Labels</strong>
-  <span style="font-size:12px;opacity:0.7;">${selAssets.length} label${selAssets.length !== 1 ? "s" : ""} · 50×25mm</span>
+  <span style="font-size:12px;opacity:0.7;">${selAssets.length} label${selAssets.length !== 1 ? "s" : ""} · 50×25mm each</span>
   <button onclick="window.print()" style="margin-left:auto;padding:7px 18px;background:#ffd200;color:#0C0E17;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Print</button>
-  <span style="font-size:11px;opacity:0.6;">Printer: Seznik DP27 · Paper: 50×25mm · Margins: None</span>
+  <span style="font-size:11px;opacity:0.6;">Paper: A 50×300mm &nbsp;·&nbsp; Margins: None &nbsp;·&nbsp; Scale: 100%</span>
   <button onclick="window.close()" style="padding:7px 14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✕</button>
 </div>
 ${selAssets.map(a => buildLabelHtml(a)).join("\n")}
@@ -144,7 +144,7 @@ ${selAssets.map(a => buildLabelHtml(a)).join("\n")}
         {/* Thermal hint */}
         {mode === "thermal" && (
           <div style={{ background: `${C.ac}0D`, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: "10px 14px", fontSize: 12, color: C.mu, lineHeight: 1.6 }}>
-            In the print dialog: select <strong style={{ color: C.tx }}>Seznik DP27</strong> · set paper to <strong style={{ color: C.tx }}>50 × 25 mm</strong> · margins <strong style={{ color: C.tx }}>None</strong>
+            In the print dialog: select <strong style={{ color: C.tx }}>Seznik DP27</strong> · paper <strong style={{ color: C.tx }}>A 50×300mm</strong> · margins <strong style={{ color: C.tx }}>None</strong> · scale <strong style={{ color: C.tx }}>100%</strong> — the gap sensor cuts each label automatically
           </div>
         )}
 
