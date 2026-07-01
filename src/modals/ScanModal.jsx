@@ -10,6 +10,7 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
   const rafRef      = useRef(null);
   const scanningRef = useRef(true);
   const cartIdsRef  = useRef(new Set());
+  const lastScanRef = useRef({ code: "", t: 0 }); // per-code cooldown to avoid rapid re-reads
 
   const [cart,     setCart]     = useState([]);   // scanned assets
   const [error,    setError]    = useState("");
@@ -41,17 +42,26 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const result = jsQR(imageData.data, imageData.width, imageData.height);
         if (result?.data) {
-          const code  = result.data.trim().toLowerCase();
-          const asset = assets.find(a => a.code?.toLowerCase() === code);
-          if (!asset) {
-            flashMsg("notfound", `"${result.data.trim()}" doesn't match any asset`);
-          } else if (cartIdsRef.current.has(asset.id)) {
-            flashMsg("dup", `${asset.name} already added`);
-          } else if (asset.status === "retired") {
-            flashMsg("retired", `${asset.name} is retired — can't process`);
+          const code = result.data.trim().toLowerCase();
+          const now  = Date.now();
+          // Ignore the same code if seen within the last 1.2s — the camera
+          // decodes ~60 frames/s, so one physical label reads many times.
+          if (code === lastScanRef.current.code && now - lastScanRef.current.t < 1200) {
+            lastScanRef.current.t = now;
           } else {
-            setCart(p => [...p, asset]);
-            flashMsg("added", `✓ Added ${asset.name}`);
+            lastScanRef.current = { code, t: now };
+            const asset = assets.find(a => a.code?.toLowerCase() === code);
+            if (!asset) {
+              flashMsg("notfound", `"${result.data.trim()}" doesn't match any asset`);
+            } else if (cartIdsRef.current.has(asset.id)) {
+              flashMsg("dup", `${asset.name} already added`);
+            } else if (asset.status === "retired") {
+              flashMsg("retired", `${asset.name} is retired — can't process`);
+            } else {
+              cartIdsRef.current.add(asset.id); // guard synchronously, before the re-render
+              setCart(p => [...p, asset]);
+              flashMsg("added", `✓ Added ${asset.name}`);
+            }
           }
         }
       }
