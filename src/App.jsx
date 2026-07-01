@@ -426,7 +426,7 @@ function AppInner() {
       {modal?.type==="vendor"      && <VendorModal vendor={modal.data} onSave={saveVendor} onClose={closeModal} />}
       {modal?.type==="createAudit" && <CreateAuditModal assets={assets} onSave={saveAudit} onClose={closeModal} />}
       {modal?.type==="runAudit"    && liveAudit && <AuditRunModal audit={liveAudit} assets={assets} onComplete={checks=>completeAudit(liveAudit.id,checks)} onClose={closeModal} />}
-      {modal?.type==="printLabels" && <PrintLabelsModal assets={assets} onClose={closeModal} />}
+      {modal?.type==="printLabels" && <PrintLabelsModal assets={assets} workstations={workstations} onClose={closeModal} />}
       {modal?.type==="workstation"         && <WorkstationModal workstation={modal.data} assets={assets} onSave={saveWorkstation} onClose={closeModal} />}
       {modal?.type==="workstationCheckout" && <WorkstationCheckoutModal workstation={modal.data} assets={assets} onCheckout={formData=>doWorkstationCheckout(modal.data,formData)} onClose={closeModal} />}
       {modal?.type==="workstationReturn"   && <WorkstationReturnModal workstation={modal.data} assets={assets} onReturn={returnData=>doWorkstationReturn(modal.data,returnData)} onClose={closeModal} />}
