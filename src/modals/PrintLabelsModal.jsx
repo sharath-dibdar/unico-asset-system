@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { C, CATS } from "../constants.js";
 import { Btn, Modal } from "../components/UI.jsx";
+import { exportWePrintLabels } from "../utils.js";
 
 // On-screen preview of one thermal label at the chosen rotation.
 // Mirrors the print markup: 50×25mm scaled up (4px/mm) for legibility.
@@ -34,7 +35,7 @@ function ThermalPreview({ asset, rotation, wsName }) {
 
 export default function PrintLabelsModal({ assets, workstations = [], onClose }) {
   const [selected,  setSelected]  = useState(new Set(assets.map(a => a.id)));
-  const [mode,      setMode]      = useState("thermal"); // "thermal" | "a4"
+  const [mode,      setMode]      = useState("weprint"); // "weprint" | "thermal" | "a4"
   const [a4Cols,    setA4Cols]    = useState(4);
   const [rotation,  setRotation]  = useState(90); // 0 | 90 | 180 | 270
 
@@ -125,6 +126,15 @@ ${selAssets.map(a => buildLabelHtml(a, rotation)).join("\n")}
 </div>`;
   }
 
+  function exportForWePrint() {
+    const rows = selAssets.map(a => ({
+      name: a.name,
+      code: a.code,
+      workstation: getWorkstationName(a.id) || "",
+    }));
+    exportWePrintLabels(rows);
+  }
+
   function printA4() {
     const win = window.open("", "_blank", "width=900,height=700");
     if (!win) { alert("Allow popups to print labels"); return; }
@@ -173,10 +183,9 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
       footer={
         <>
           <Btn onClick={onClose} variant="secondary">Cancel</Btn>
-          {mode === "thermal"
-            ? <Btn onClick={printThermal} variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>🖨 Print Thermal Labels</Btn>
-            : <Btn onClick={printA4}      variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>🖨 Open A4 Print Preview</Btn>
-          }
+          {mode === "weprint" && <Btn onClick={exportForWePrint} variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>⬇ Export for WePrint (.xlsx)</Btn>}
+          {mode === "thermal" && <Btn onClick={printThermal} variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>🖨 Print Thermal Labels</Btn>}
+          {mode === "a4"      && <Btn onClick={printA4}      variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>🖨 Open A4 Print Preview</Btn>}
         </>
       }
     >
@@ -185,27 +194,45 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
         {/* Mode toggle */}
         <div style={{ display: "flex", gap: 10 }}>
           <button
-            onClick={() => setMode("thermal")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "thermal" ? C.ac : C.br}`, background: mode === "thermal" ? `${C.ac}15` : C.el, color: mode === "thermal" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
+            onClick={() => setMode("weprint")}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "weprint" ? C.ac : C.br}`, background: mode === "weprint" ? `${C.ac}15` : C.el, color: mode === "weprint" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
           >
-            🖨 Thermal Printer
-            <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>50 × 25 mm · Seznik DP27</span>
+            🏷️ WePrint (DP27)
+            <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>Recommended · bulk from Excel</span>
+          </button>
+          <button
+            onClick={() => setMode("thermal")}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "thermal" ? C.ac : C.br}`, background: mode === "thermal" ? `${C.ac}15` : C.el, color: mode === "thermal" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "thermal" ? 700 : 400, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
+          >
+            🖨 Browser Print
+            <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>Other thermal printers</span>
           </button>
           <button
             onClick={() => setMode("a4")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "a4" ? C.ac : C.br}`, background: mode === "a4" ? `${C.ac}15` : C.el, color: mode === "a4" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: 400, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "a4" ? C.ac : C.br}`, background: mode === "a4" ? `${C.ac}15` : C.el, color: mode === "a4" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "a4" ? 700 : 400, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
           >
             📄 A4 Sheet
-            <span style={{ fontSize: 10, opacity: 0.7 }}>Multiple labels per page</span>
+            <span style={{ fontSize: 10, opacity: 0.7 }}>Multiple per page</span>
           </button>
         </div>
+
+        {/* WePrint instructions */}
+        {mode === "weprint" && (
+          <div style={{ background: `${C.ac}0D`, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: "12px 16px", fontSize: 12.5, color: C.mu, lineHeight: 1.7 }}>
+            <div style={{ color: C.tx, fontWeight: 700, marginBottom: 6 }}>How to print on the DP27</div>
+            <div>1. Export the sheet below and open <strong style={{ color: C.tx }}>WePrint</strong> — the app or <span style={{ color: C.ac2 }}>seznik.in/weprint</span>.</div>
+            <div>2. <strong style={{ color: C.tx }}>One-time:</strong> create a label template — size <strong style={{ color: C.tx }}>50 × 25 mm</strong>, page type <strong style={{ color: C.tx }}>Label</strong>, gap <strong style={{ color: C.tx }}>3 mm</strong>. Add a <strong style={{ color: C.tx }}>QRCode</strong> element bound to the <strong style={{ color: C.tx }}>Code</strong> column, and Text elements bound to <strong style={{ color: C.tx }}>Name</strong> / <strong style={{ color: C.tx }}>Code</strong> / <strong style={{ color: C.tx }}>Workstation</strong>. Save it.</div>
+            <div>3. Load this Excel file into that template and <strong style={{ color: C.tx }}>bulk print</strong> — WePrint handles sizing, gap sensing and cutting.</div>
+            <div style={{ marginTop: 6, fontSize: 11.5, color: C.mu2 }}>The file has one row per selected asset with columns: <code>Name</code>, <code>Code</code>, <code>Workstation</code>.</div>
+          </div>
+        )}
 
         {/* Thermal hint + rotation */}
         {mode === "thermal" && (
           <>
             <div style={{ background: `${C.ac}0D`, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: "10px 14px", fontSize: 12, color: C.mu, lineHeight: 1.6 }}>
-              <div style={{ color: C.err, fontWeight: 700, marginBottom: 4 }}>⚠ One-time printer setup required</div>
-              The 50×300mm preset is <em>continuous</em> mode — it feeds a full 300mm every job. First create a <strong style={{ color: C.tx }}>50 × 25mm gap-type</strong> paper size in the DP27 driver (Control Panel → Devices &amp; Printers → right-click DP27 → Printing preferences → Page/Label size → New/Custom). Then in the print dialog pick that size, <strong style={{ color: C.tx }}>Margins: None</strong>, <strong style={{ color: C.tx }}>Scale: 100%</strong>.
+              <div style={{ color: C.tx, fontWeight: 700, marginBottom: 4 }}>For other thermal printers</div>
+              For the DP27, use the <strong style={{ color: C.tx }}>WePrint</strong> tab instead — its Windows driver only exposes a 50×300mm continuous size that feeds 300mm per job. This browser path works for printers whose driver exposes a true <strong style={{ color: C.tx }}>50 × 25mm gap</strong> paper size. Select that size in the print dialog with <strong style={{ color: C.tx }}>Margins: None</strong> and <strong style={{ color: C.tx }}>Scale: 100%</strong>.
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: C.mu }}>Rotation:</span>
