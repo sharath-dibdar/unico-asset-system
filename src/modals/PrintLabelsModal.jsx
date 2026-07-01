@@ -70,18 +70,20 @@ export default function PrintLabelsModal({ assets, workstations = [], onClose })
   function printThermal() {
     const win = window.open("", "_blank", "width=700,height=500");
     if (!win) { alert("Allow popups to print labels"); return; }
-    // Thermal roll: page width=50mm, height=all labels stacked (gap sensor cuts at each 25mm label)
-    const totalH = selAssets.length * 25;
+    // One label per page = one physical 50×25mm label. Requires the driver's
+    // paper size to be set to 50×25mm (gap type); see the in-app instructions.
     const html = `<!DOCTYPE html>
 <html><head><title>QR Labels — UNICO</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  @page{size:50mm ${totalH}mm;margin:0;}
+  @page{size:50mm 25mm;margin:0;}
   html,body{width:50mm;background:#fff;font-family:Arial,Helvetica,sans-serif;}
   .label{
     position:relative;overflow:hidden;
     width:50mm;height:25mm;
+    page-break-after:always;break-after:page;
   }
+  .label:last-child{page-break-after:avoid;break-after:avoid;}
   .rot{
     position:absolute;top:50%;left:50%;
     display:flex;align-items:center;justify-content:center;gap:2mm;
@@ -202,7 +204,8 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
         {mode === "thermal" && (
           <>
             <div style={{ background: `${C.ac}0D`, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: "10px 14px", fontSize: 12, color: C.mu, lineHeight: 1.6 }}>
-              In the print dialog: select <strong style={{ color: C.tx }}>Seznik DP27</strong> · paper <strong style={{ color: C.tx }}>A 50×300mm</strong> · margins <strong style={{ color: C.tx }}>None</strong> · scale <strong style={{ color: C.tx }}>100%</strong> — the gap sensor cuts each label automatically
+              <div style={{ color: C.err, fontWeight: 700, marginBottom: 4 }}>⚠ One-time printer setup required</div>
+              The 50×300mm preset is <em>continuous</em> mode — it feeds a full 300mm every job. First create a <strong style={{ color: C.tx }}>50 × 25mm gap-type</strong> paper size in the DP27 driver (Control Panel → Devices &amp; Printers → right-click DP27 → Printing preferences → Page/Label size → New/Custom). Then in the print dialog pick that size, <strong style={{ color: C.tx }}>Margins: None</strong>, <strong style={{ color: C.tx }}>Scale: 100%</strong>.
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: C.mu }}>Rotation:</span>
