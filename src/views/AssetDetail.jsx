@@ -109,6 +109,11 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
           {/* INFO tab */}
           {tab==="info" && (
             <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              {(a.tags||[]).length>0 && (
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {a.tags.map(t=><span key={t} style={{ fontSize:12, background:`${C.ac}18`, color:C.ac, padding:"4px 10px", borderRadius:6, fontWeight:600 }}>🏷 {t}</span>)}
+                </div>
+              )}
               <Section title="Asset Information">
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px 24px" }}>
                   <FieldVal label="Category"    val={CATS[a.cat]?.label} />

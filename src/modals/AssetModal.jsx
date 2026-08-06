@@ -1,11 +1,11 @@
 ﻿import { useState, useRef } from "react";
 import { C, CATS, SPEC_DEF, PAYMENT_MODES } from "../constants.js";
 import { calcDep, compressImage, fINR } from "../utils.js";
-import { Label, Btn, AssigneeSelect } from "../components/UI.jsx";
+import { Label, Btn, AssigneeSelect, TagInput } from "../components/UI.jsx";
 
 const STEPS = ["Basic Info", "Procurement & Docs", "Insurance & AMC", "Technical Specs"];
 
-export default function AssetModal({ form, setForm, onSave, onClose, isEdit, vendors }) {
+export default function AssetModal({ form, setForm, onSave, onClose, isEdit, vendors, onDuplicate, allTags = [] }) {
   const [step, setStep] = useState(1);
   const photoRef  = useRef();
   const docRef    = useRef();
@@ -87,6 +87,8 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
                 <div><Label>Location</Label><input value={form.loc||""} onChange={e=>set("loc",e.target.value)} placeholder="Edit Desk 1, Studio…" /></div>
                 <div><Label>Assigned To</Label><AssigneeSelect value={form.assignTo} onChange={v=>set("assignTo",v)} /></div>
               </div>
+
+              <div><Label>Tags</Label><TagInput value={form.tags||[]} onChange={v=>set("tags",v)} suggestions={allTags} placeholder="e.g. rental, fragile, 4K, on-loan…" /></div>
 
               {/* Photo upload */}
               <div>
@@ -234,7 +236,10 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
 
         {/* Footer */}
         <div style={{ padding:"16px 24px", borderTop:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", flexShrink:0 }}>
-          <Btn onClick={step>1?()=>setStep(s=>s-1):onClose} variant="secondary">{step>1?"← Back":"Cancel"}</Btn>
+          <div style={{ display:"flex", gap:8 }}>
+            <Btn onClick={step>1?()=>setStep(s=>s-1):onClose} variant="secondary">{step>1?"← Back":"Cancel"}</Btn>
+            {isEdit && onDuplicate && <Btn onClick={()=>{ onDuplicate(); setStep(1); }} variant="secondary" style={{ color:C.ac2 }}>⧉ Duplicate</Btn>}
+          </div>
           {step<steps
             ? <Btn onClick={()=>canNext&&setStep(s=>s+1)} variant="primary" style={{ opacity:canNext?1:0.5, cursor:canNext?"pointer":"not-allowed" }}>Next →</Btn>
             : <Btn onClick={onSave} variant="success">{isEdit?"Save Changes ✓":"Add Asset ✓"}</Btn>

@@ -75,6 +75,7 @@ function AppInner() {
   const [q,    setQ]    = useState("");
   const [catF, setCatF] = useState("all");
   const [stF,  setStF]  = useState("all");
+  const [tagF, setTagF] = useState("all");
 
   // ─── Load all data from Supabase ─────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -109,9 +110,19 @@ function AppInner() {
     setEditId(a?.id || null);
     setForm(a
       ? { ...a, specs:{...(a.specs||{})}, insurance:{...(a.insurance||{})}, photos:[...(a.photos||[])], documents:[...(a.documents||[])] }
-      : { status:"active", cond:"Good", specs:{}, photos:[], documents:[], insurance:{ insurer:"",policyNo:"",coverage:0,premium:0,renewalDate:"" }, serviceLog:[], history:[], disposal:null, vendorId:null, poNumber:"", billNumber:"", paymentMode:"", gstAmount:0, amcProvider:"", amcStart:"", amcEnd:"", amcCost:0, amcNotes:"" }
+      : { status:"active", cond:"Good", specs:{}, photos:[], documents:[], tags:[], insurance:{ insurer:"",policyNo:"",coverage:0,premium:0,renewalDate:"" }, serviceLog:[], history:[], disposal:null, vendorId:null, poNumber:"", billNumber:"", paymentMode:"", gstAmount:0, amcProvider:"", amcStart:"", amcEnd:"", amcCost:0, amcNotes:"" }
     );
     setModal({ type:"asset" });
+  }
+
+  // Turn the current form into a fresh new-asset draft (keeps shared details,
+  // clears the per-unit identity so it saves as a separate asset).
+  function duplicateFromForm() {
+    setEditId(null);
+    setForm(p => {
+      const { id, code, history, ...rest } = p;
+      return { ...rest, name:"", serial:"", status:"active", assignTo:"", workstationId:null, history:[] };
+    });
   }
 
   async function saveAsset() {
@@ -368,9 +379,12 @@ function AppInner() {
   }
 
   // ─── Filters ─────────────────────────────────────────────────────────────
+  const allTags = [...new Set(assets.flatMap(a => a.tags || []))].sort((x, y) => x.localeCompare(y));
+
   const filtered = assets.filter(a => {
-    const mQ = !q || [a.name,a.code,a.make,a.model,a.serial,a.vendor].some(f => f?.toLowerCase().includes(q.toLowerCase()));
-    return mQ && (catF === "all" || a.cat === catF) && (stF === "all" || a.status === stF);
+    const mQ = !q || [a.name,a.code,a.make,a.model,a.serial,a.vendor,...(a.tags||[])].some(f => f?.toLowerCase().includes(q.toLowerCase()));
+    const mTag = tagF === "all" || (a.tags || []).includes(tagF);
+    return mQ && (catF === "all" || a.cat === catF) && (stF === "all" || a.status === stF) && mTag;
   });
 
   const totalV  = assets.reduce((s, a) => s + (a.price || 0), 0);
@@ -404,7 +418,7 @@ function AppInner() {
 
         <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
           {view==="dashboard"  && <Dashboard assets={assets} vendors={vendors} audits={audits} checkouts={checkouts} openDetail={openDetail} totalV={totalV} totalBV={totalBV} setView={setView} isAdmin={isAdmin} />}
-          {view==="list"       && <AssetList filtered={filtered} q={q} setQ={setQ} catF={catF} setCatF={setCatF} stF={stF} setStF={setStF} openDetail={openDetail} isAdmin={isAdmin} />}
+          {view==="list"       && <AssetList filtered={filtered} q={q} setQ={setQ} catF={catF} setCatF={setCatF} stF={stF} setStF={setStF} tagF={tagF} setTagF={setTagF} allTags={allTags} openDetail={openDetail} isAdmin={isAdmin} />}
           {view==="detail" && sel && <AssetDetail asset={sel} isAdmin={isAdmin} onEdit={isAdmin?()=>openAdd(sel):null} onDelete={isAdmin?deleteAsset:null} onCheckout={a=>setModal({type:"checkout",data:{asset:a}})} onDispose={isAdmin?a=>setModal({type:"disposal",data:a}):null} onUpdate={updateAsset} />}
           {view==="vendors"    && isAdmin && <Vendors vendors={vendors} assets={assets} onAdd={()=>setModal({type:"vendor"})} onEdit={v=>setModal({type:"vendor",data:v})} onDelete={deleteVendor} />}
           {view==="audits"     && <Audits audits={audits} assets={assets} setView={setView} onCreateAudit={isAdmin?()=>setModal({type:"createAudit"}):null} onStartAudit={startAudit} onRunAudit={a=>setModal({type:"runAudit",data:a})} onDeleteAudit={isAdmin?deleteAudit:null} onUpdateAudit={a=>{ const u={...a}; setAudits(p=>p.map(x=>x.id===a.id?u:x)); db.audits.upsert(u); }} />}
@@ -418,7 +432,7 @@ function AppInner() {
       </div>
 
       {/* ─── Modals ────────────────────────────────────────────────────── */}
-      {modal?.type==="asset"       && <AssetModal form={form} setForm={setForm} onSave={saveAsset} onClose={closeModal} isEdit={!!editId} vendors={vendors} />}
+      {modal?.type==="asset"       && <AssetModal form={form} setForm={setForm} onSave={saveAsset} onClose={closeModal} isEdit={!!editId} vendors={vendors} onDuplicate={duplicateFromForm} allTags={allTags} />}
       {modal?.type==="checkout"    && <CheckoutModal assets={assets} preselectedAsset={modal.data?.asset} onCheckout={doCheckout} onClose={closeModal} />}
       {modal?.type==="return"      && <ReturnModal checkout={modal.data} assets={assets} onReturn={doReturn} onClose={closeModal} />}
       {modal?.type==="disposal"    && <DisposalModal asset={modal.data} onDispose={doDispose} onClose={closeModal} />}

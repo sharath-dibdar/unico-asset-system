@@ -70,6 +70,49 @@ export const AssigneeSelect = ({ value, onChange, allowEmpty }) => {
   );
 };
 
+// Chip-style tag editor. value: string[]; suggestions: string[] for autocomplete.
+export const TagInput = ({ value = [], onChange, suggestions = [], placeholder = "Add a tag…" }) => {
+  const [input, setInput] = useState("");
+  const tags = value || [];
+  const add = raw => {
+    const t = raw.trim();
+    if (!t) { setInput(""); return; }
+    if (!tags.some(x => x.toLowerCase() === t.toLowerCase())) onChange([...tags, t]);
+    setInput("");
+  };
+  const remove = t => onChange(tags.filter(x => x !== t));
+  const onKey = e => {
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(input); }
+    else if (e.key === "Backspace" && !input && tags.length) remove(tags[tags.length - 1]);
+  };
+  const avail = suggestions.filter(s => !tags.some(t => t.toLowerCase() === s.toLowerCase()));
+  return (
+    <div>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center", border:`1px solid ${C.br}`, background:C.el, borderRadius:9, padding:"7px 9px" }}>
+        {tags.map(t => (
+          <span key={t} style={{ display:"inline-flex", alignItems:"center", gap:5, background:`${C.ac}18`, color:C.ac, borderRadius:6, padding:"3px 8px", fontSize:12, fontWeight:600 }}>
+            🏷 {t}
+            <button onClick={() => remove(t)} style={{ background:"none", border:"none", color:C.ac, cursor:"pointer", fontSize:13, lineHeight:1, padding:0 }}>×</button>
+          </span>
+        ))}
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={onKey}
+          onBlur={() => add(input)}
+          list="unico-tag-suggestions"
+          placeholder={tags.length ? "" : placeholder}
+          style={{ flex:1, minWidth:110, border:"none", background:"transparent", padding:"2px 0", fontSize:13, outline:"none" }}
+        />
+        <datalist id="unico-tag-suggestions">
+          {avail.map(s => <option key={s} value={s} />)}
+        </datalist>
+      </div>
+      <div style={{ fontSize:10, color:C.mu2, marginTop:4 }}>Press Enter or comma to add. Existing tags autocomplete.</div>
+    </div>
+  );
+};
+
 export const EmptyState = ({ icon="📦", title="Nothing here yet", sub="" }) => (
   <div style={{ textAlign:"center", padding:"60px 20px", color:C.mu }}>
     <div style={{ fontSize:48, marginBottom:12 }}>{icon}</div>

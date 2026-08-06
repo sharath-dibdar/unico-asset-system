@@ -2,7 +2,7 @@
 import { fINR, dTo, calcDep } from "../utils.js";
 import { Badge } from "../components/UI.jsx";
 
-export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setStF, openDetail, isAdmin }) {
+export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setStF, tagF, setTagF, allTags = [], openDetail, isAdmin }) {
   return (
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:14 }}>
       {/* Filters */}
@@ -19,6 +19,12 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
           <option value="all">All Status</option>
           {Object.entries(ST_CFG).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}
         </select>
+        {allTags.length>0 && (
+          <select value={tagF} onChange={e=>setTagF(e.target.value)} style={{ width:"auto", minWidth:140 }}>
+            <option value="all">All Tags</option>
+            {allTags.map(t=><option key={t} value={t}>🏷 {t}</option>)}
+          </select>
+        )}
       </div>
 
       <div style={{ fontSize:12, color:C.mu }}>{filtered.length} asset{filtered.length!==1?"s":""} found</div>
@@ -46,6 +52,14 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
                 <div style={{ fontSize:11, color:C.mu, marginTop:2, fontFamily:"'Noto Sans Mono',monospace" }}>{a.code} · {a.make} · {a.loc}</div>
                 {a.assignTo && a.assignTo!=="Common Pool" && (
                   <div style={{ fontSize:11, color:C.mu, marginTop:1 }}>👤 {a.assignTo}</div>
+                )}
+                {(a.tags||[]).length>0 && (
+                  <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginTop:4 }}>
+                    {a.tags.map(t=>(
+                      <span key={t} onClick={e=>{ e.stopPropagation(); setTagF(t); }} title="Filter by this tag"
+                        style={{ fontSize:10, background:`${C.ac}14`, color:C.ac, padding:"2px 7px", borderRadius:5, fontWeight:600, cursor:"pointer" }}>🏷 {t}</span>
+                    ))}
+                  </div>
                 )}
               </div>
               {isAdmin && (

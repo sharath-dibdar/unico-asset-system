@@ -7,11 +7,21 @@ export default function WorkstationModal({ workstation, assets, onSave, onClose 
     ? { ...workstation }
     : { name:"", location:"", notes:"", assetIds:[], assignTo:"", status:"active" });
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const isEdit = !!form.id;
   const valid = form.name.trim() && form.assetIds.length > 0;
 
   // Assets available to bundle: not retired, and either unassigned to any
   // workstation or already part of this one (so editing doesn't hide them).
-  const selectable = assets.filter(a => a.status !== "retired" && (!a.workstationId || a.workstationId === workstation?.id));
+  const selectable = assets.filter(a => a.status !== "retired" && (!a.workstationId || a.workstationId === form.id));
+
+  // Duplicate: keep location/notes, drop identity + assets (each asset can
+  // only belong to one workstation, so a copy starts with an empty bundle).
+  function duplicate() {
+    setForm(p => {
+      const { id, ...rest } = p;
+      return { ...rest, name:"", assetIds:[], status:"active", assignTo:"" };
+    });
+  }
 
   function toggleAsset(id) {
     setForm(p => ({
@@ -21,12 +31,15 @@ export default function WorkstationModal({ workstation, assets, onSave, onClose 
   }
 
   return (
-    <Modal title={workstation ? "Edit Workstation" : "New Workstation"} sub="Bundle assets that move together (CPU, monitor, keyboard…)" onClose={onClose}
+    <Modal title={isEdit ? "Edit Workstation" : "New Workstation"} sub="Bundle assets that move together (CPU, monitor, keyboard…)" onClose={onClose}
       footer={
         <>
-          <Btn onClick={onClose} variant="secondary">Cancel</Btn>
+          <div style={{ display:"flex", gap:8 }}>
+            <Btn onClick={onClose} variant="secondary">Cancel</Btn>
+            {isEdit && <Btn onClick={duplicate} variant="secondary" style={{ color:C.ac2 }}>⧉ Duplicate</Btn>}
+          </div>
           <Btn onClick={() => valid && onSave(form)} variant="primary" style={{ opacity:valid?1:0.5 }}>
-            {workstation ? "Save Changes" : "Create Workstation"}
+            {isEdit ? "Save Changes" : "Create Workstation"}
           </Btn>
         </>
       }>
