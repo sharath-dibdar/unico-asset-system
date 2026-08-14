@@ -128,6 +128,7 @@ function AppInner() {
   async function saveAsset() {
     const now = new Date().toISOString();
     let saved;
+    const prevSel = sel;
     if (editId) {
       const old = assets.find(a => a.id === editId) || {};
       const changes = Object.keys(form)
@@ -141,7 +142,24 @@ function AppInner() {
       setAssets(p => [...p, saved]);
     }
     closeModal();
-    await db.assets.upsert(saved);
+
+    // Persist to Supabase. If the write is rejected (e.g. RLS blocks the
+    // insert because this account isn't recognised as an admin in the DB),
+    // roll back the optimistic UI change so the screen matches reality
+    // instead of showing an asset that silently disappears on refresh.
+    const { ok, error } = await db.assets.upsert(saved);
+    if (!ok) {
+      if (editId) {
+        const old = assets.find(a => a.id === editId);
+        if (old) {
+          setAssets(p => p.map(a => a.id === editId ? old : a));
+          if (prevSel?.id === editId) setSel(old);
+        }
+      } else {
+        setAssets(p => p.filter(a => a.id !== saved.id));
+      }
+      alert(`Couldn't save this asset — the change was not stored.\n\n${error || "Unknown error"}\n\nIf this says "row-level security", your account isn't linked as an admin in the database. Run supabase/migration_003_fix_profile_linking.sql.`);
+    }
   }
 
   async function deleteAsset(id) {

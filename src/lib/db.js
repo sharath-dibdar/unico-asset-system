@@ -16,14 +16,17 @@ export const db = {
     upsert: async (a) => {
       const { error } = await supabase.from('assets').upsert({ id: a.id, data: a }, { onConflict: 'id' });
       if (error) console.warn('[db/assets upsert]', error.message);
+      return { ok: !error, error: error?.message };
     },
     delete: async (id) => {
       const { error } = await supabase.from('assets').delete().eq('id', id);
       if (error) console.warn('[db/assets delete]', error.message);
+      return { ok: !error, error: error?.message };
     },
     bulkInsert: async (list) => {
       const { error } = await supabase.from('assets').insert(list.map(a => ({ id: a.id, data: a })));
       if (error) console.warn('[db/assets bulkInsert]', error.message);
+      return { ok: !error, error: error?.message };
     },
   },
 
