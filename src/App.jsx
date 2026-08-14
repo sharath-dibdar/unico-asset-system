@@ -54,7 +54,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const { me, loaded: authLoaded, isAdmin } = useAuth();
+  const { me, loaded: authLoaded, isAdmin, adminMismatch } = useAuth();
 
   const [assets,       setAssets]       = useState([]);
   const [vendors,      setVendors]      = useState([]);
@@ -433,6 +433,16 @@ function AppInner() {
 
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
         <TopBar view={view} onAdd={() => openAdd()} onBack={() => { if(view==="detail") setView("list"); else if(view==="audit") setView("audits"); }} onScan={() => setModal({type:"scan"})} selectedName={view==="detail"&&sel?sel.name:null} />
+
+        {adminMismatch && (
+          <div style={{ background:`${C.err}1A`, borderBottom:`1px solid ${C.err}`, color:C.tx, padding:"10px 22px", fontSize:13, lineHeight:1.5, display:"flex", gap:10, alignItems:"flex-start" }}>
+            <span style={{ fontSize:15 }}>⚠️</span>
+            <span>
+              <strong>Your account shows as Admin, but the database doesn't recognise it as one.</strong>{" "}
+              Admin changes (adding assets, vendors, audits) won't be saved and will disappear on refresh. This account's login isn't linked to its profile — an admin needs to run <code style={{ background:C.el, padding:"1px 5px", borderRadius:4 }}>supabase/migration_003_fix_profile_linking.sql</code>, then sign out and back in.
+            </span>
+          </div>
+        )}
 
         <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
           {view==="dashboard"  && <Dashboard assets={assets} vendors={vendors} audits={audits} checkouts={checkouts} openDetail={openDetail} totalV={totalV} totalBV={totalBV} setView={setView} isAdmin={isAdmin} />}

@@ -106,6 +106,14 @@ export const db = {
       const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
       return count ?? 0;
     },
+    // What the DATABASE thinks: calls the is_admin() SQL function for the
+    // current session. Returns true/false, or null if it can't be determined
+    // (e.g. RPC error) so callers can avoid false alarms.
+    dbIsAdmin: async () => {
+      const { data, error } = await supabase.rpc('is_admin');
+      if (error) { console.warn('[db/profiles dbIsAdmin]', error.message); return null; }
+      return data === true;
+    },
   },
 
   sessions: {

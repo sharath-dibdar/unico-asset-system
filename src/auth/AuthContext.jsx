@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
   const [sessions,   setSessions] = useState([]);      // all device_sessions (admin view)
   const [loaded,     setLoaded]   = useState(false);   // auth resolved
   const [authError,  setAuthError]= useState("");      // shown on login page
+  const [adminMismatch, setAdminMismatch] = useState(false); // UI says admin, DB says not
 
   // Refs mirror state for use inside the onAuthStateChange closure, which is
   // registered once on mount — without these, it would always see the
@@ -127,6 +128,17 @@ export function AuthProvider({ children }) {
     setAuthError("");
     setLoaded(true);
 
+    // Sanity check: the app treats role === "admin" as admin, but the database
+    // gates writes on is_admin() (keyed on auth_id). If those disagree — e.g.
+    // this profile's auth_id never linked — admin writes will be silently
+    // rejected. Flag it so the UI can warn instead of failing invisibly.
+    if (profile.role === "admin") {
+      const dbAdmin = await db.profiles.dbIsAdmin();
+      setAdminMismatch(dbAdmin === false); // only when the DB definitively says no
+    } else {
+      setAdminMismatch(false);
+    }
+
     // Load admin data for UserAdmin view
     await loadAdminData();
   }, [loadAdminData]);
@@ -156,6 +168,7 @@ export function AuthProvider({ children }) {
           setMySess(null);
           setUsers([]);
           setSessions([]);
+          setAdminMismatch(false);
           setLoaded(true);
         } else if (event === "TOKEN_REFRESHED") {
           // Session refreshed — just touch last_active
@@ -248,7 +261,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthCtx.Provider value={{
       me, mySession, users, sessions,
-      loaded, authError,
+      loaded, authError, adminMismatch,
       isAdmin: me?.role === "admin",
       requestOTP, verifyOTP, logout,
       revokeSession, addUser, updateUser, deactivateUser, reactivateUser,
