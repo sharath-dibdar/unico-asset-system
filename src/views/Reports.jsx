@@ -42,7 +42,7 @@ export default function Reports({ assets, checkouts, vendors, onOpenExport }) {
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
       {/* Quick export buttons */}
       <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:14, padding:20 }}>
-        <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15, marginBottom:12 }}>Quick Exports</div>
+        <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:15, marginBottom:12 }}>Quick Exports</div>
         <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
           <Btn onClick={()=>downloadFile(generateAssetCSV(assets),"unico-asset-register.csv","text/csv")} variant="secondary" style={{ fontSize:12 }}>⬇ Asset Register (CSV)</Btn>
           <Btn onClick={()=>downloadFile(generateDepCSV(assets),"unico-depreciation.csv","text/csv")} variant="secondary" style={{ fontSize:12 }}>⬇ Depreciation Schedule (CSV)</Btn>
@@ -62,7 +62,7 @@ export default function Reports({ assets, checkouts, vendors, onOpenExport }) {
         ].map(k=>(
           <div key={k.l} style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${C.br}`, borderRadius:12, padding:"16px 20px" }}>
             <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>{k.l}</div>
-            <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:k.c }}>{k.v}</div>
+            <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Inter',sans-serif", color:k.c }}>{k.v}</div>
           </div>
         ))}
       </div>

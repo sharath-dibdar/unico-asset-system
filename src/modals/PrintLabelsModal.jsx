@@ -195,21 +195,21 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={() => setMode("weprint")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "weprint" ? C.ac : C.br}`, background: mode === "weprint" ? `${C.ac}15` : C.el, color: mode === "weprint" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "weprint" ? C.ac : C.br}`, background: mode === "weprint" ? `${C.ac}15` : C.el, color: mode === "weprint" ?C.acD:C.mu, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "'Inter',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
           >
             🏷️ WePrint (DP27)
             <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>Recommended · bulk from Excel</span>
           </button>
           <button
             onClick={() => setMode("thermal")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "thermal" ? C.ac : C.br}`, background: mode === "thermal" ? `${C.ac}15` : C.el, color: mode === "thermal" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "thermal" ? 700 : 400, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "thermal" ? C.ac : C.br}`, background: mode === "thermal" ? `${C.ac}15` : C.el, color: mode === "thermal" ?C.acD:C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "thermal" ? 700 : 400, fontFamily: "'Inter',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
           >
             🖨 Browser Print
             <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>Other thermal printers</span>
           </button>
           <button
             onClick={() => setMode("a4")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "a4" ? C.ac : C.br}`, background: mode === "a4" ? `${C.ac}15` : C.el, color: mode === "a4" ? C.ac : C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "a4" ? 700 : 400, fontFamily: "'Archivo',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
+            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "a4" ? C.ac : C.br}`, background: mode === "a4" ? `${C.ac}15` : C.el, color: mode === "a4" ?C.acD:C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "a4" ? 700 : 400, fontFamily: "'Inter',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
           >
             📄 A4 Sheet
             <span style={{ fontSize: 10, opacity: 0.7 }}>Multiple per page</span>
@@ -237,7 +237,7 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: C.mu }}>Rotation:</span>
               {[0, 90, 180, 270].map(deg => (
-                <button key={deg} onClick={() => setRotation(deg)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${rotation === deg ? C.ac : C.br}`, background: rotation === deg ? `${C.ac}15` : "transparent", color: rotation === deg ? C.ac : C.mu, cursor: "pointer", fontSize: 12, fontFamily: "'Archivo',sans-serif" }}>{deg}°</button>
+                <button key={deg} onClick={() => setRotation(deg)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${rotation === deg ? C.ac : C.br}`, background: rotation === deg ? `${C.ac}15` : "transparent", color: rotation === deg ?C.acD:C.mu, cursor: "pointer", fontSize: 12, fontFamily: "'Inter',sans-serif" }}>{deg}°</button>
               ))}
               <span style={{ fontSize: 11, color: C.mu2 }}>If the label prints sideways or upside-down, change this until it reads correctly.</span>
             </div>
@@ -254,7 +254,7 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <span style={{ fontSize: 13, color: C.mu }}>Columns per row:</span>
             {[3, 4, 5, 6].map(n => (
-              <button key={n} onClick={() => setA4Cols(n)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${a4Cols === n ? C.ac : C.br}`, background: a4Cols === n ? `${C.ac}15` : "transparent", color: a4Cols === n ? C.ac : C.mu, cursor: "pointer", fontSize: 12, fontFamily: "'Archivo',sans-serif" }}>{n}</button>
+              <button key={n} onClick={() => setA4Cols(n)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${a4Cols === n ? C.ac : C.br}`, background: a4Cols === n ? `${C.ac}15` : "transparent", color: a4Cols === n ?C.acD:C.mu, cursor: "pointer", fontSize: 12, fontFamily: "'Inter',sans-serif" }}>{n}</button>
             ))}
           </div>
         )}
@@ -274,8 +274,8 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
             const wsName = getWorkstationName(a.id);
             return (
               <div key={a.id} onClick={() => toggle(a.id)} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 14px", background: selected.has(a.id) ? `${C.ac}10` : C.el, border: `1px solid ${selected.has(a.id) ? C.ac : C.br}`, borderRadius: 10, cursor: "pointer", transition: "all 0.15s" }}>
-                <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${selected.has(a.id) ? C.ac : C.mu}`, background: selected.has(a.id) ? C.ac : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {selected.has(a.id) && <span style={{ color: "#fff", fontSize: 12, lineHeight: 1 }}>✓</span>}
+                <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${selected.has(a.id) ?C.acD:C.mu}`, background: selected.has(a.id) ? C.ac : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {selected.has(a.id) && <span style={{ color: C.acTx, fontSize: 12, lineHeight: 1, fontWeight: 800 }}>✓</span>}
                 </div>
                 <div style={{ fontSize: 18, flexShrink: 0 }}>{CATS[a.cat]?.emoji}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>

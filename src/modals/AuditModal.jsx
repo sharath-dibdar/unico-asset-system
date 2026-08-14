@@ -104,7 +104,7 @@ export function AuditRunModal({ audit, assets, onComplete, onClose }) {
         {/* Header */}
         <div style={{ padding:"20px 24px 12px", borderBottom:`1px solid ${C.br}` }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-            <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:800, fontSize:16 }}>{audit.name}</div>
+            <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:16 }}>{audit.name}</div>
             <button onClick={onClose} style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:20 }}>×</button>
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
@@ -137,12 +137,12 @@ export function AuditRunModal({ audit, assets, onComplete, onClose }) {
               <button onClick={()=>markFound(true)} style={{
                 flex:1, padding:"12px", borderRadius:10, border:`2px solid ${item.found===true?C.ok:C.br}`,
                 background:item.found===true?`${C.ok}18`:"transparent", color:item.found===true?C.ok:C.mu,
-                cursor:"pointer", fontWeight:700, fontSize:15, fontFamily:"'Archivo',sans-serif"
+                cursor:"pointer", fontWeight:700, fontSize:15, fontFamily:"'Inter',sans-serif"
               }}>✓ Found</button>
               <button onClick={()=>markFound(false)} style={{
                 flex:1, padding:"12px", borderRadius:10, border:`2px solid ${item.found===false?C.err:C.br}`,
                 background:item.found===false?`${C.err}18`:"transparent", color:item.found===false?C.err:C.mu,
-                cursor:"pointer", fontWeight:700, fontSize:15, fontFamily:"'Archivo',sans-serif"
+                cursor:"pointer", fontWeight:700, fontSize:15, fontFamily:"'Inter',sans-serif"
               }}>✗ Not Found</button>
             </div>
           </div>

@@ -33,7 +33,7 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
         {filtered.map(a => {
           const dep = CATS[a.cat] ? calcDep(a.price,a.pDate,CATS[a.cat].rate) : null;
           const wd  = dTo(a.wEnd);
-          const wDot = wd===null ? null : wd<0 ? C.err : wd<90 ? C.ac : C.ok;
+          const wDot = wd===null ? null : wd<0 ? C.err : wd<90 ?C.ac2:C.ok;
           return (
             <div key={a.id} onClick={()=>openDetail(a)}
               style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:12, padding:"14px 18px", cursor:"pointer", display:"flex", gap:14, alignItems:"center", transition:"all 0.15s" }}
@@ -57,7 +57,7 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
                   <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginTop:4 }}>
                     {a.tags.map(t=>(
                       <span key={t} onClick={e=>{ e.stopPropagation(); setTagF(t); }} title="Filter by this tag"
-                        style={{ fontSize:10, background:`${C.ac}14`, color:C.ac, padding:"2px 7px", borderRadius:5, fontWeight:600, cursor:"pointer" }}>🏷 {t}</span>
+                        style={{ fontSize:10, background:`${C.ac}14`, color:C.acD, padding:"2px 7px", borderRadius:5, fontWeight:600, cursor:"pointer" }}>🏷 {t}</span>
                     ))}
                   </div>
                 )}

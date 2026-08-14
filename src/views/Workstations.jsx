@@ -25,7 +25,7 @@ export default function Workstations({ workstations, assets, isAdmin, onAdd, onE
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
-                    <span style={{ fontSize:15, fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>🖥️ {w.name}</span>
+                    <span style={{ fontSize:15, fontWeight:700, fontFamily:"'Inter',sans-serif" }}>🖥️ {w.name}</span>
                     <Badge s={w.status} />
                   </div>
                   {w.location && <div style={{ fontSize:12, color:C.mu, marginTop:2 }}>📍 {w.location}</div>}
@@ -33,8 +33,8 @@ export default function Workstations({ workstations, assets, isAdmin, onAdd, onE
                 </div>
                 {isAdmin && (
                   <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
-                    <button onClick={() => onEdit(w)} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Archivo',sans-serif" }}>Edit</button>
-                    <button onClick={() => { if (confirm(`Delete workstation "${w.name}"? Bundled assets will be unlinked, not deleted.`)) onDelete(w.id); }} style={{ background:`${C.err}10`, border:`1px solid ${C.err}25`, color:C.err, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Archivo',sans-serif" }}>✕</button>
+                    <button onClick={() => onEdit(w)} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Inter',sans-serif" }}>Edit</button>
+                    <button onClick={() => { if (confirm(`Delete workstation "${w.name}"? Bundled assets will be unlinked, not deleted.`)) onDelete(w.id); }} style={{ background:`${C.err}10`, border:`1px solid ${C.err}25`, color:C.err, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Inter',sans-serif" }}>✕</button>
                   </div>
                 )}
               </div>

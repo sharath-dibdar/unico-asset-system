@@ -40,7 +40,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
         {/* Header */}
         <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
           <div>
-            <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:800, fontSize:18 }}>{isEdit?"Edit Asset":"New Asset"}</div>
+            <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:18 }}>{isEdit?"Edit Asset":"New Asset"}</div>
             <div style={{ fontSize:11, color:C.mu, marginTop:2 }}>Step {step} of {steps} — {stepLabels[step-1]}</div>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:24, lineHeight:1, padding:4 }}>×</button>
@@ -152,9 +152,9 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
                 <div style={{ background:C.el, borderRadius:10, padding:14, border:`1px solid ${C.br}` }}>
                   <div style={{ fontSize:10, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:8 }}>Depreciation Preview (IT Act WDV)</div>
                   <div style={{ display:"flex", gap:20, flexWrap:"wrap" }}>
-                    <div><div style={{ fontSize:10, color:C.mu2 }}>Rate</div><div style={{ fontWeight:700, color:C.ac }}>{Math.round(CATS[form.cat].rate*100)}% WDV</div></div>
+                    <div><div style={{ fontSize:10, color:C.mu2 }}>Rate</div><div style={{ fontWeight:700, color:C.acD }}>{Math.round(CATS[form.cat].rate*100)}% WDV</div></div>
                     <div><div style={{ fontSize:10, color:C.mu2 }}>Current Book Value</div><div style={{ fontWeight:700, color:C.ok }}>{fINR(depPreview.cur)}</div></div>
-                    <div><div style={{ fontSize:10, color:C.mu2 }}>Depreciated</div><div style={{ fontWeight:700, color:C.ac }}>{Math.round((1-depPreview.cur/form.price)*100)}%</div></div>
+                    <div><div style={{ fontSize:10, color:C.mu2 }}>Depreciated</div><div style={{ fontWeight:700, color:C.acD }}>{Math.round((1-depPreview.cur/form.price)*100)}%</div></div>
                   </div>
                 </div>
               )}
@@ -177,7 +177,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
                   </div>
                 ))}
                 {(form.documents||[]).length<5 && (
-                  <button onClick={()=>docRef.current?.click()} style={{ background:C.el, border:`1px dashed ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 14px", borderRadius:8, fontSize:12, fontFamily:"'Archivo',sans-serif" }}>
+                  <button onClick={()=>docRef.current?.click()} style={{ background:C.el, border:`1px dashed ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 14px", borderRadius:8, fontSize:12, fontFamily:"'Inter',sans-serif" }}>
                     + Attach Document
                   </button>
                 )}
@@ -191,7 +191,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
             <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
               <div>
                 <div style={{ fontSize:13, color:C.mu, marginBottom:14 }}>All insurance and AMC fields are optional.</div>
-                <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🛡 Insurance Details</div>
+                <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🛡 Insurance Details</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                     <div><Label>Insurer</Label><input value={form.insurance?.insurer||""} onChange={e=>setIns("insurer",e.target.value)} placeholder="e.g. New India Assurance" /></div>
@@ -206,7 +206,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
               </div>
 
               <div style={{ borderTop:`1px solid ${C.br}`, paddingTop:18 }}>
-                <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🔧 AMC Details</div>
+                <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:14, marginBottom:12 }}>🔧 AMC Details</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   <div><Label>AMC Provider</Label><input value={form.amcProvider||""} onChange={e=>set("amcProvider",e.target.value)} placeholder="Service centre / company" /></div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>

@@ -55,8 +55,8 @@ export default function WorkstationModal({ workstation, assets, onSave, onClose 
               const checked = form.assetIds.includes(a.id);
               return (
                 <div key={a.id} onClick={() => toggleAsset(a.id)} style={{ display:"flex", gap:10, alignItems:"center", padding:"8px 10px", background:checked?`${C.ac}10`:C.el, border:`1px solid ${checked?C.ac:C.br}`, borderRadius:8, cursor:"pointer" }}>
-                  <div style={{ width:18, height:18, borderRadius:5, border:`2px solid ${checked?C.ac:C.mu}`, background:checked?C.ac:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                    {checked && <span style={{ color:"#fff", fontSize:11, lineHeight:1 }}>✓</span>}
+                  <div style={{ width:18, height:18, borderRadius:5, border:`2px solid ${checked?C.acD:C.mu}`, background:checked?C.ac:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    {checked && <span style={{ color:C.acTx, fontSize:11, lineHeight:1, fontWeight:800 }}>✓</span>}
                   </div>
                   <span style={{ fontSize:15, flexShrink:0 }}>{CATS[a.cat]?.emoji}</span>
                   <div style={{ flex:1, minWidth:0 }}>

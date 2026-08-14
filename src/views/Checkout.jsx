@@ -43,7 +43,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
         <div style={{ textAlign:"right", flexShrink:0 }}>
           <div style={{ fontSize:12, color:C.mu }}>Out: {fDate(c.checkoutDate)}</div>
           {c.status==="out" && days!==null && (
-            <div style={{ fontSize:11, fontWeight:700, color:days<0?C.err:days===0?C.ac:C.mu, marginTop:2 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:days<0?C.err:days===0?C.acD:C.mu, marginTop:2 }}>
               {days<0?`${Math.abs(days)}d overdue`:days===0?"Due today":`Due in ${days}d`}
             </div>
           )}
@@ -65,7 +65,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
       <div style={{ background:C.sf, border:`1px solid ${anyOverdue?C.err+"50":C.br}`, borderRadius:12, padding:"14px 18px", display:"flex", flexDirection:"column", gap:10 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, flexWrap:"wrap" }}>
           <div>
-            <div style={{ fontSize:11, color:C.ac, textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700, marginBottom:3 }}>
+            <div style={{ fontSize:11, color:C.acD, textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:700, marginBottom:3 }}>
               {isWorkstation ? "🖥️ Workstation bundle" : "🛒 Multi-item checkout"} · {items.length} item{items.length!==1?"s":""}
             </div>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
@@ -77,7 +77,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
           <div style={{ textAlign:"right" }}>
             <div style={{ fontSize:12, color:C.mu }}>Out: {fDate(first.checkoutDate)}</div>
             {days!==null && (
-              <div style={{ fontSize:11, fontWeight:700, color:days<0?C.err:days===0?C.ac:C.mu, marginTop:2 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:days<0?C.err:days===0?C.acD:C.mu, marginTop:2 }}>
                 {days<0?`${Math.abs(days)}d overdue`:days===0?"Due today":`Due in ${days}d`}
               </div>
             )}
@@ -102,15 +102,15 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
       <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
         <div style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${C.br}`, borderRadius:12, padding:"16px 20px" }}>
           <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Out Now</div>
-          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.ac2 }}>{out.length}</div>
+          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Inter',sans-serif", color:C.ac2 }}>{out.length}</div>
         </div>
         <div style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${overdue.length>0?C.err+"40":C.br}`, borderRadius:12, padding:"16px 20px" }}>
           <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Overdue</div>
-          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:overdue.length>0?C.err:C.mu }}>{overdue.length}</div>
+          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Inter',sans-serif", color:overdue.length>0?C.err:C.mu }}>{overdue.length}</div>
         </div>
         <div style={{ flex:1, minWidth:140, background:C.sf, border:`1px solid ${C.br}`, borderRadius:12, padding:"16px 20px" }}>
           <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Total Movements</div>
-          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.tx }}>{checkouts.length}</div>
+          <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Inter',sans-serif", color:C.tx }}>{checkouts.length}</div>
         </div>
         <div style={{ display:"flex", alignItems:"center" }}>
           <Btn onClick={onNewCheckout} variant="primary">+ Check Out Asset</Btn>
@@ -119,7 +119,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
 
       {/* Currently out */}
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15 }}>Currently Out ({out.length})</div>
+        <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:15 }}>Currently Out ({out.length})</div>
         {out.length===0
           ? <div style={{ color:C.mu, fontSize:14, padding:"12px 0" }}>All assets are currently in.</div>
           : (
@@ -134,7 +134,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
       {/* Return history */}
       {returned.length>0 && (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:15 }}>Recent Returns</div>
+          <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:15 }}>Recent Returns</div>
           {returned.slice(0,10).map(c=><Row key={c.id} c={c} showReturn={false} />)}
         </div>
       )}

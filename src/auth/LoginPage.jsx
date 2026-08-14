@@ -34,18 +34,18 @@ export default function LoginPage() {
   const displayErr = err || authError;
 
   return (
-    <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:C.bg, fontFamily:"'Archivo',sans-serif", color:C.tx, padding:16 }}>
+    <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:"transparent", fontFamily:"'Inter',sans-serif", color:C.tx, padding:16 }}>
       <div style={{ width:"100%", maxWidth:400 }}>
 
         {/* Brand */}
         <div style={{ textAlign:"center", marginBottom:36 }}>
           <img src="/logo.svg" alt="Unico" style={{ width:72, height:72, borderRadius:18, marginBottom:12 }} />
-          <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:800, fontSize:20, color:C.tx, letterSpacing:"0.03em" }}>UNICO</div>
+          <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:20, color:C.tx, letterSpacing:"0.03em" }}>UNICO</div>
           <div style={{ fontSize:11, color:C.mu, letterSpacing:"0.16em", textTransform:"uppercase", marginTop:2 }}>Asset Intelligence System</div>
         </div>
 
-        <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:16, padding:28 }}>
-          <div style={{ fontFamily:"'Archivo',sans-serif", fontWeight:700, fontSize:18, marginBottom:4 }}>
+        <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:20, padding:"32px 30px", boxShadow:C.shadow }}>
+          <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:18, marginBottom:4 }}>
             {step === "email" ? "Sign in" : "Check your email"}
           </div>
           <div style={{ fontSize:13, color:C.mu, marginBottom:22 }}>
@@ -61,7 +61,7 @@ export default function LoginPage() {
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required autoFocus />
               </div>
               {displayErr && <div style={{ fontSize:13, color:C.err }}>{displayErr}</div>}
-              <button type="submit" disabled={busy} style={{ background:C.ac, color:C.acTx, border:"none", borderRadius:10, padding:"12px", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Archivo',sans-serif", transition:"opacity 0.15s", opacity:busy?0.6:1 }}>
+              <button type="submit" disabled={busy} style={{ background:C.ac, color:C.acTx, border:"none", borderRadius:10, padding:"12px", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Inter',sans-serif", transition:"opacity 0.15s", opacity:busy?0.6:1 }}>
                 {busy ? "Sending…" : "Send OTP →"}
               </button>
             </form>
@@ -78,11 +78,11 @@ export default function LoginPage() {
                 />
               </div>
               {displayErr && <div style={{ fontSize:13, color:C.err }}>{displayErr}</div>}
-              <button type="submit" disabled={busy} style={{ background:C.ac, color:C.acTx, border:"none", borderRadius:10, padding:"12px", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Archivo',sans-serif", opacity:busy?0.6:1 }}>
+              <button type="submit" disabled={busy} style={{ background:C.ac, color:C.acTx, border:"none", borderRadius:10, padding:"12px", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Inter',sans-serif", opacity:busy?0.6:1 }}>
                 {busy ? "Verifying…" : "Verify & Sign In →"}
               </button>
               <button type="button" onClick={() => { setStep("email"); setErr(""); setCode(""); }}
-                style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:13, fontFamily:"'Archivo',sans-serif" }}>
+                style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:13, fontFamily:"'Inter',sans-serif" }}>
                 ← Use a different email
               </button>
             </form>

@@ -29,9 +29,25 @@ export const ST_CFG = {
 
 // ─── Colour palette ───────────────────────────────────────────────────────────
 export const C = {
-  bg:"#0C0E17", sf:"#14171F", el:"#1C1F2C", br:"#252837",
-  ac:"#ffd200", acTx:"#0C0E17", ac2:"#FB923C", ok:"#10B981", err:"#EF4444",
-  tx:"#EEF0F7", mu:"#7B82A0", mu2:"#4A5068",
+  // Light theme — matches the Unico Sales / Cost Estimator dashboards.
+  bg:"#F3F5F8",   // page base (a warm→cool radial glow sits on <body> in index.css)
+  sf:"#FFFFFF",   // cards / surfaces
+  el:"#F1F3F7",   // subtle fills: chips, hover, secondary controls
+  br:"#E9ECF1",   // hairline borders
+  ac:"#FFD200",   // brand yellow (fills, borders, tints)
+  acTx:"#0F1115", // text/icon on a solid-yellow fill
+  acD:"#A16207",  // dark gold — accent TEXT/links/icons that stay readable on light
+  ac2:"#F59E0B",  // amber — secondary accent (overhead, expiring)
+  ok:"#059669",   // green — success / positive
+  err:"#DC2626",  // red — danger / alerts
+  tx:"#0F1115",   // primary text (near-black)
+  mu:"#6B7280",   // muted text
+  mu2:"#9AA1AE",  // faint text / captions
+  // Extras for the light system
+  ink:"#0F1115",  // deep card (the dark accent summary card)
+  glow:"#FFF6CC", // warm top-glow tint
+  shadow:"0 1px 2px rgba(15,17,21,0.04), 0 4px 16px rgba(15,17,21,0.05)",
+  shadowLg:"0 8px 30px rgba(15,17,21,0.10)",
 };
 
 // ─── Vendor categories ────────────────────────────────────────────────────────

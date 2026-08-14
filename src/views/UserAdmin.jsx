@@ -71,7 +71,7 @@ function SessionsTab() {
               <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                 <span style={{ fontSize:13, fontWeight:600 }}>{u?.name || u?.email || "Unknown user"}</span>
                 {isMine && <Badge color={C.ok}>This device</Badge>}
-                <Badge color={u?.role === "admin" ? C.ac : C.mu}>{u?.role}</Badge>
+                <Badge color={u?.role === "admin" ?C.acD:C.mu}>{u?.role}</Badge>
               </div>
               <div style={{ fontSize:12, color:C.mu, marginTop:2 }}>
                 {dev.browser} on {dev.os}
@@ -117,8 +117,8 @@ export default function UserAdmin() {
   }
 
   const Tab = ({ id, label, badge }) => (
-    <button onClick={() => setTab(id)} style={{ padding:"8px 18px", borderRadius:8, border:"none", cursor:"pointer", fontSize:13, fontWeight:tab===id?700:400, background:tab===id?`${C.ac}18`:"transparent", color:tab===id?C.ac:C.mu, fontFamily:"'Archivo',sans-serif" }}>
-      {label}{badge > 0 && <span style={{ marginLeft:6, background:tab===id?C.ac:C.mu, color:"#fff", borderRadius:10, fontSize:10, padding:"1px 6px" }}>{badge}</span>}
+    <button onClick={() => setTab(id)} style={{ padding:"8px 18px", borderRadius:8, border:"none", cursor:"pointer", fontSize:13, fontWeight:tab===id?700:400, background:tab===id?`${C.ac}18`:"transparent", color:tab===id?C.acD:C.mu, fontFamily:"'Inter',sans-serif" }}>
+      {label}{badge > 0 && <span style={{ marginLeft:6, background:tab===id?C.acD:C.mu, color:"#fff", borderRadius:10, fontSize:10, padding:"1px 6px" }}>{badge}</span>}
     </button>
   );
 
@@ -150,7 +150,7 @@ export default function UserAdmin() {
                     <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                       <span style={{ fontSize:13, fontWeight:600 }}>{u.name}</span>
                       {isMe && <Badge color={C.ok}>You</Badge>}
-                      <Badge color={u.role === "admin" ? C.ac : C.mu}>{u.role}</Badge>
+                      <Badge color={u.role === "admin" ?C.acD:C.mu}>{u.role}</Badge>
                       {!u.active && <Badge color={C.err}>Inactive</Badge>}
                       {userSessions > 0 && <Badge color={C.ok}>{userSessions} active</Badge>}
                     </div>

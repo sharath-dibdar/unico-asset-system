@@ -30,12 +30,15 @@ import { WorkstationCheckoutModal, WorkstationReturnModal } from "./modals/Works
 function GlobalStyles() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Noto+Sans+Mono:wdth,wght@75,400;75,500;75,600&display=swap');
       *{box-sizing:border-box;margin:0;padding:0;}
-      input,select,textarea{background:${C.el};border:1px solid ${C.br};color:${C.tx};padding:10px 14px;border-radius:8px;font-family:'Archivo',sans-serif;font-size:13px;width:100%;outline:none;transition:border-color 0.2s;}
-      input:focus,select:focus,textarea:focus{border-color:${C.ac};}
-      select option{background:${C.el};color:${C.tx};}
-      ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:${C.sf};}::-webkit-scrollbar-thumb{background:${C.br};border-radius:3px;}
+      input,select,textarea{background:#fff;border:1px solid ${C.br};color:${C.tx};padding:10px 12px;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;width:100%;outline:none;transition:border-color 0.15s,box-shadow 0.15s;-webkit-appearance:none;appearance:none;}
+      textarea{resize:vertical;min-height:84px;line-height:1.5;}
+      select{cursor:pointer;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+      input::placeholder,textarea::placeholder{color:#B4BAC6;}
+      input:focus,select:focus,textarea:focus{border-color:${C.ac};box-shadow:0 0 0 3px rgba(255,210,0,0.25);}
+      input[type="checkbox"],input[type="radio"]{width:auto;accent-color:${C.ac};cursor:pointer;}
+      select option{background:#fff;color:${C.tx};}
+      ::-webkit-scrollbar{width:10px;height:10px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#D5DAE3;border-radius:8px;border:2px solid transparent;background-clip:padding-box;}::-webkit-scrollbar-thumb:hover{background:#C2C8D4;background-clip:padding-box;}
       @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
       .fade{animation:fadeUp 0.22s ease;}
       @media(max-width:768px){.dsk{display:none!important;}}
@@ -410,7 +413,7 @@ function AppInner() {
 
   // ─── Loading / auth gates ─────────────────────────────────────────────────
   if (!loaded || !authLoaded) return (
-    <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:C.bg, color:C.mu, fontFamily:"'Archivo',sans-serif" }}>
+    <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:"transparent", color:C.mu, fontFamily:"'Inter',sans-serif" }}>
       <div style={{ textAlign:"center" }}>
         <img src="/logo.svg" alt="Unico" style={{ width:56, height:56, borderRadius:14, marginBottom:16, opacity:0.85 }} />
         <div style={{ fontSize:13 }}>Loading…</div>
@@ -425,7 +428,7 @@ function AppInner() {
     : null;
 
   return (
-    <div style={{ display:"flex", height:"100vh", background:C.bg, fontFamily:"'Archivo',sans-serif", color:C.tx, overflow:"hidden" }}>
+    <div style={{ display:"flex", height:"100vh", background:"transparent", fontFamily:"'Inter',sans-serif", color:C.tx, overflow:"hidden" }}>
       <Sidebar view={view} setView={setView} assets={assets} vendors={vendors} audits={audits}
         onAdd={() => openAdd()} onImport={() => setModal({type:"bulkImport"})}
         onExport={() => setView("reports")} onPrintLabels={() => setModal({type:"printLabels"})}

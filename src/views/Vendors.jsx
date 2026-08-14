@@ -47,10 +47,10 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
                 <>
                   <tr key={v.id} style={{ borderBottom:`1px solid ${C.br}` }}>
                     <td style={td}>
-                      <div style={{ fontWeight:700, fontFamily:"'Archivo',sans-serif" }}>{v.name}</div>
-                      {v.category && <span style={{ display:"inline-block", marginTop:4, background:`${C.ac}15`, color:C.ac, padding:"2px 8px", borderRadius:6, fontSize:11, fontWeight:600 }}>{v.category}</span>}
+                      <div style={{ fontWeight:700, fontFamily:"'Inter',sans-serif" }}>{v.name}</div>
+                      {v.category && <span style={{ display:"inline-block", marginTop:4, background:`${C.ac}15`, color:C.acD, padding:"2px 8px", borderRadius:6, fontSize:11, fontWeight:600 }}>{v.category}</span>}
                       {(v.address || v.notes) && (
-                        <div onClick={() => setExpanded(isOpen ? null : v.id)} style={{ marginTop:6, fontSize:11, color:C.ac, cursor:"pointer" }}>
+                        <div onClick={() => setExpanded(isOpen ? null : v.id)} style={{ marginTop:6, fontSize:11, color:C.acD, cursor:"pointer" }}>
                           {isOpen ? "▾ Hide details" : "▸ Show address / notes"}
                         </div>
                       )}
@@ -58,8 +58,8 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
                     <td style={td}>
                       {v.contact && <div>👤 {v.contact}</div>}
                       {v.phone   && <div style={{ color:C.mu, marginTop:2 }}>📞 {v.phone}</div>}
-                      {v.email   && <div style={{ marginTop:2 }}>✉ <a href={`mailto:${v.email}`} style={{ color:C.ac, textDecoration:"none" }}>{v.email}</a></div>}
-                      {v.website && <div style={{ marginTop:2 }}>🌐 <a href={v.website} target="_blank" rel="noreferrer" style={{ color:C.ac, textDecoration:"none" }}>{v.website.replace(/^https?:\/\//,"")}</a></div>}
+                      {v.email   && <div style={{ marginTop:2 }}>✉ <a href={`mailto:${v.email}`} style={{ color:C.acD, textDecoration:"none" }}>{v.email}</a></div>}
+                      {v.website && <div style={{ marginTop:2 }}>🌐 <a href={v.website} target="_blank" rel="noreferrer" style={{ color:C.acD, textDecoration:"none" }}>{v.website.replace(/^https?:\/\//,"")}</a></div>}
                       {!v.contact && !v.phone && !v.email && !v.website && <span style={{ color:C.mu2 }}>—</span>}
                     </td>
                     <td style={{ ...td, fontFamily:"'Noto Sans Mono',monospace", fontSize:11, color:C.mu }}>{v.gst || "—"}</td>
@@ -79,8 +79,8 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
                       }
                     </td>
                     <td style={{ ...td, textAlign:"right", whiteSpace:"nowrap" }}>
-                      <button onClick={() => onEdit(v)} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Archivo',sans-serif", marginRight:6 }}>Edit</button>
-                      <button onClick={() => { if (confirm(`Delete "${v.name}"?`)) onDelete(v.id); }} style={{ background:`${C.err}10`, border:`1px solid ${C.err}25`, color:C.err, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Archivo',sans-serif" }}>✕</button>
+                      <button onClick={() => onEdit(v)} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Inter',sans-serif", marginRight:6 }}>Edit</button>
+                      <button onClick={() => { if (confirm(`Delete "${v.name}"?`)) onDelete(v.id); }} style={{ background:`${C.err}10`, border:`1px solid ${C.err}25`, color:C.err, cursor:"pointer", padding:"5px 10px", borderRadius:7, fontSize:12, fontFamily:"'Inter',sans-serif" }}>✕</button>
                     </td>
                   </tr>
                   {isOpen && (v.address || v.notes) && (

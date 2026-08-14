@@ -5,7 +5,7 @@ import { fINR, fDate, dTo, calcDep, uid } from "../utils.js";
 import { Badge, Label, FieldVal, Section, Btn, QRDisplay } from "../components/UI.jsx";
 
 const TAB = ({ id, active, onClick, children }) => (
-  <button onClick={()=>onClick(id)} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontSize:13, fontWeight:active?700:400, fontFamily:"'Archivo',sans-serif", background:active?`${C.ac}18`:"transparent", color:active?C.ac:C.mu, transition:"all 0.15s" }}>
+  <button onClick={()=>onClick(id)} style={{ padding:"8px 16px", borderRadius:8, border:"none", cursor:"pointer", fontSize:13, fontWeight:active?700:400, fontFamily:"'Inter',sans-serif", background:active?`${C.ac}18`:"transparent", color:active?C.acD:C.mu, transition:"all 0.15s" }}>
     {children}
   </button>
 );
@@ -18,7 +18,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
   const specDefs  = SPEC_DEF[a.cat]||[];
   const wd        = dTo(a.wEnd);
   const depPct    = dep&&a.price ? Math.round((1-dep.cur/a.price)*100) : 0;
-  const warnCol   = wd===null?C.mu:wd<0?C.err:wd<=30?C.err:wd<=90?C.ac:C.ok;
+  const warnCol   = wd===null?C.mu:wd<0?C.err:wd<=30?C.err:wd<=90?C.ac2:C.ok;
   const warnMsg   = wd===null?"No warranty data":wd<0?`Expired ${Math.abs(wd)} days ago`:wd===0?"Expires today!":`${wd} days remaining`;
   const isDisposed = !!a.disposal;
 
@@ -80,7 +80,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
           {isAdmin && dep && (
             <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:14, padding:16 }}>
               <Label>Book Value Today</Label>
-              <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.ok }}>{fINR(dep.cur)}</div>
+              <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Inter',sans-serif", color:C.ok }}>{fINR(dep.cur)}</div>
               <div style={{ fontSize:12, color:C.mu, marginTop:2 }}>{depPct}% depreciated</div>
               <div style={{ fontSize:11, color:C.mu2, marginTop:1 }}>WDV @ {Math.round(CATS[a.cat].rate*100)}% p.a.</div>
             </div>
@@ -111,7 +111,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
             <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
               {(a.tags||[]).length>0 && (
                 <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                  {a.tags.map(t=><span key={t} style={{ fontSize:12, background:`${C.ac}18`, color:C.ac, padding:"4px 10px", borderRadius:6, fontWeight:600 }}>🏷 {t}</span>)}
+                  {a.tags.map(t=><span key={t} style={{ fontSize:12, background:`${C.ac}18`, color:C.acD, padding:"4px 10px", borderRadius:6, fontWeight:600 }}>🏷 {t}</span>)}
                 </div>
               )}
               <Section title="Asset Information">
@@ -134,7 +134,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                   {isAdmin && (
                     <div>
                       <Label>Purchase Price</Label>
-                      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Archivo',sans-serif", color:C.ac2 }}>{fINR(a.price)}</div>
+                      <div style={{ fontSize:20, fontWeight:800, fontFamily:"'Inter',sans-serif", color:C.ac2 }}>{fINR(a.price)}</div>
                     </div>
                   )}
                   {isAdmin && <FieldVal label="GST Amount"   val={a.gstAmount?fINR(a.gstAmount):null} />}
@@ -194,7 +194,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                     {specDefs.map(([k,l]) => a.specs?.[k] ? (
                       <div key={k} style={{ background:C.el, borderRadius:9, padding:"10px 14px" }}>
                         <div style={{ fontSize:10, color:C.mu2, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>{l}</div>
-                        <div style={{ fontSize:13, fontWeight:600, fontFamily:"'Noto Sans Mono',monospace", color:C.ac }}>{a.specs[k]}</div>
+                        <div style={{ fontSize:13, fontWeight:600, fontFamily:"'Noto Sans Mono',monospace", color:C.acD }}>{a.specs[k]}</div>
                       </div>
                     ) : null)}
                   </div>
@@ -216,7 +216,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                 <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginBottom:16 }}>
                   <div><Label>Original Cost</Label><div style={{ fontSize:16, fontWeight:700 }}>{fINR(a.price)}</div></div>
                   <div><Label>Current Book Value</Label><div style={{ fontSize:16, fontWeight:700, color:C.ok }}>{fINR(dep.cur)}</div></div>
-                  <div><Label>Total Depreciation</Label><div style={{ fontSize:16, fontWeight:700, color:C.ac }}>{fINR(a.price-dep.cur)} ({depPct}%)</div></div>
+                  <div><Label>Total Depreciation</Label><div style={{ fontSize:16, fontWeight:700, color:C.acD }}>{fINR(a.price-dep.cur)} ({depPct}%)</div></div>
                 </div>
                 <div style={{ height:160, marginBottom:16 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -230,7 +230,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                       <CartesianGrid strokeDasharray="3 3" stroke={C.br} />
                       <XAxis dataKey="yr" tick={{ fill:C.mu, fontSize:10 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill:C.mu, fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v=>`₹${Math.round(v/1000)}K`} />
-                      <Tooltip formatter={v=>[fINR(v),"Book Value"]} contentStyle={{ background:C.el, border:`1px solid ${C.br}`, borderRadius:8, fontFamily:"'Archivo',sans-serif", fontSize:12 }} />
+                      <Tooltip formatter={v=>[fINR(v),"Book Value"]} contentStyle={{ background:C.el, border:`1px solid ${C.br}`, borderRadius:8, fontFamily:"'Inter',sans-serif", fontSize:12 }} />
                       <Area type="monotone" dataKey="val" stroke={C.ac} strokeWidth={2.5} fill="url(#dg2)" dot={{ fill:C.ac, r:3 }} />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -272,7 +272,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                           <div style={{ fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</div>
                           <div style={{ fontSize:11, color:C.mu }}>{doc.uploadedAt?.split("T")[0]||""} · {Math.round((doc.data?.length||0)*0.75/1024)} KB</div>
                         </div>
-                        <a href={doc.data} download={doc.name} style={{ color:C.ac, fontSize:12, fontWeight:600, textDecoration:"none" }}>⬇ Download</a>
+                        <a href={doc.data} download={doc.name} style={{ color:C.acD, fontSize:12, fontWeight:600, textDecoration:"none" }}>⬇ Download</a>
                       </div>
                     ))}
                   </div>
@@ -296,7 +296,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                       </div>
                       <div style={{ flex:1 }}>
                         <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:4 }}>
-                          <span style={{ background:`${C.ac}18`, color:C.ac, padding:"2px 8px", borderRadius:8, fontSize:11, fontWeight:700 }}>{s.type}</span>
+                          <span style={{ background:`${C.ac}18`, color:C.acD, padding:"2px 8px", borderRadius:8, fontSize:11, fontWeight:700 }}>{s.type}</span>
                           {s.cost>0 && <span style={{ fontSize:12, color:C.ac2 }}>{fINR(s.cost)}</span>}
                         </div>
                         <div style={{ fontSize:13, fontWeight:600 }}>{s.description}</div>
@@ -345,7 +345,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                   <div key={i} style={{ padding:"12px 0", borderBottom:`1px solid ${C.br}` }}>
                     <div style={{ display:"flex", gap:10, marginBottom:6 }}>
                       <span style={{ fontSize:11, color:C.mu, fontFamily:"'Noto Sans Mono',monospace" }}>{h.timestamp?.split("T")[0]||""} {h.timestamp?.split("T")[1]?.slice(0,5)||""}</span>
-                      <span style={{ background:`${C.ac}18`, color:C.ac, padding:"1px 8px", borderRadius:6, fontSize:11, fontWeight:700 }}>{h.action}</span>
+                      <span style={{ background:`${C.ac}18`, color:C.acD, padding:"1px 8px", borderRadius:6, fontSize:11, fontWeight:700 }}>{h.action}</span>
                     </div>
                     {(h.changes||[]).map((c,j)=>(
                       <div key={j} style={{ fontSize:12, color:C.mu, marginLeft:8 }}>
