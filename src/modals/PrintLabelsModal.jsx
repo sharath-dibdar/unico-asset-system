@@ -3,7 +3,7 @@ import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS } from "../constants.js";
 import { Btn, Modal } from "../components/UI.jsx";
 import { exportWePrintLabels } from "../utils.js";
-import { detectHelper, getPrinters, renderLabel, printImage, loadPrintSettings, savePrintSettings, labelDate } from "../lib/labelPrinter.js";
+import { detectHelper, getPrinters, renderLabel, printImage, loadPrintSettings, savePrintSettings, labelDate, LABEL_SIZES } from "../lib/labelPrinter.js";
 
 const MODES = [
   ["direct",  "🖨 Label Printer", "Print directly · DP27"],
@@ -24,6 +24,9 @@ export default function PrintLabelsModal({ assets, workstations = [], preselectI
   const [printers, setPrinters] = useState([]);
   const [printer,  setPrinter]  = useState(saved.printer || "");
   const [rotation, setRotation] = useState(saved.rotation ?? 0);
+  const [size,     setSize]     = useState(LABEL_SIZES[saved.size] ? saved.size : "qr50x25");
+  const dims = LABEL_SIZES[size];
+  const rotations = dims.kind === "barcode" ? [0, 180] : [0, 90, 180, 270];
   const [preview,  setPreview]  = useState("");
   const [progress, setProgress] = useState(null);      // { done, total, failed } | null
 
@@ -60,16 +63,16 @@ export default function PrintLabelsModal({ assets, workstations = [], preselectI
 
   useEffect(() => { if (mode === "direct" && hState === "idle") connect(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { savePrintSettings({ printer, rotation }); }, [printer, rotation]);
+  useEffect(() => { savePrintSettings({ printer, rotation, size }); }, [printer, rotation, size]);
 
   // Live preview = the exact image that will be sent to the printer.
   const first = selAssets[0];
   useEffect(() => {
     let cancelled = false;
     if (mode !== "direct" || !first) { setPreview(""); return; }
-    renderLabel(labelData(first), rotation).then(url => { if (!cancelled) setPreview(url); });
+    renderLabel(labelData(first), rotation, size).then(url => { if (!cancelled) setPreview(url); });
     return () => { cancelled = true; };
-  }, [mode, first?.id, rotation]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode, first?.id, rotation, size]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function printDirect() {
     if (!helper || !printer || selAssets.length === 0) return;
@@ -79,8 +82,8 @@ export default function PrintLabelsModal({ assets, workstations = [], preselectI
     setProgress({ done: 0, total, failed: 0 });
     for (let i = 0; i < total; i++) {
       try {
-        const png = await renderLabel(labelData(selAssets[i]), rotation);
-        const ok = await printImage(helper.base, printer, png);
+        const png = await renderLabel(labelData(selAssets[i]), rotation, size);
+        const ok = await printImage(helper.base, printer, png, { size });
         if (!ok) failed++;
       } catch { failed++; }
       setProgress({ done: i + 1, total, failed });
@@ -204,8 +207,17 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
                   </select>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: C.mu }}>Label:</span>
+                  {Object.entries(LABEL_SIZES).map(([k, v]) => <button key={k} onClick={() => setSize(k)} style={pill(size === k)}>{v.label}</button>)}
+                </div>
+                {dims.kind === "barcode" && (
+                  <div style={{ fontSize: 11.5, color: C.mu, lineHeight: 1.5 }}>
+                    Load the 50 × 15 mm roll first. Barcodes read with a handheld scanner or the in-app camera scanner.
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                   <span style={{ fontSize: 12, color: C.mu }}>Rotate:</span>
-                  {[0, 90, 180, 270].map(d => <button key={d} onClick={() => setRotation(d)} style={pill(rotation === d)}>{d}°</button>)}
+                  {rotations.map(d => <button key={d} onClick={() => setRotation(d)} style={pill(rotation === d || (dims.kind === "barcode" && d === 0 && rotation !== 180))}>{d}°</button>)}
                 </div>
               </>
             )}
@@ -214,9 +226,9 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
             {hState !== "missing" && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                 {preview
-                  ? <img src={preview} alt="Label preview" style={{ width: "100%", maxWidth: 320, aspectRatio: "2 / 1", background: "#fff", borderRadius: 6, border: `1px solid ${C.br}`, imageRendering: "pixelated" }} />
+                  ? <img src={preview} alt="Label preview" style={{ width: "100%", maxWidth: 320, aspectRatio: `${dims.w} / ${dims.h}`, background: "#fff", borderRadius: 6, border: `1px solid ${C.br}`, imageRendering: "pixelated" }} />
                   : <div style={{ fontSize: 12, color: C.mu2, padding: "10px 0" }}>Select an asset below to preview its label.</div>}
-                {preview && <div style={{ fontSize: 10, color: C.mu2 }}>Preview · 50 × 25 mm{selAssets.length > 1 ? ` · showing 1 of ${selAssets.length}` : ""}</div>}
+                {preview && <div style={{ fontSize: 10, color: C.mu2 }}>Preview · {dims.w} × {dims.h} mm{selAssets.length > 1 ? ` · showing 1 of ${selAssets.length}` : ""}</div>}
               </div>
             )}
 

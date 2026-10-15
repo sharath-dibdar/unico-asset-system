@@ -3,6 +3,7 @@ import { C, CATS } from "./constants.js";
 import { calcDep, uid, nextCode, migrateAsset } from "./utils.js";
 import { db } from "./lib/db.js";
 import { hasInlineFiles, externalizeAttachments } from "./lib/files.jsx";
+import { useScannerWedge } from "./lib/scanner.js";
 import { Sidebar, TopBar, BottomNav } from "./components/Nav.jsx";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import LoginPage from "./auth/LoginPage.jsx";
@@ -102,6 +103,11 @@ function AppInner() {
   const [view,   setView]  = useState("dashboard");
   const [sel,    setSel]   = useState(null);   // selected asset
   const [modal,  setModal] = useState(null);   // { type, data? }
+
+  // A USB/Bluetooth barcode scanner used on any page opens the scan cart with
+  // that item. Disabled while another popup is open so a stray scan can't
+  // replace a half-filled form (the scan popup listens for itself).
+  useScannerWedge(code => setModal({ type:"scan", data:{ code } }), !!me && !modal);
 
   // Asset form
   const [form,   setForm]  = useState({});
@@ -549,6 +555,7 @@ function AppInner() {
       {modal?.type==="scan"        && (
         <ScanModal
           assets={assets} checkouts={checkouts}
+          initialCode={modal.data?.code}
           onBulkCheckout={doBulkCheckout}
           onBulkReturn={doBulkReturn}
           onViewDetails={a => { openDetail(a); closeModal(); }}

@@ -1,17 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { CatIcon } from "../components/Icons.jsx";
-import jsQR from "jsqr";
 import { C, CATS, CHECKOUT_PURPOSES } from "../constants.js";
 import { Btn, Modal, Label, AssigneeSelect } from "../components/UI.jsx";
+import { getDetector, findAssetByScan, useScannerWedge } from "../lib/scanner.js";
 
-export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkReturn, onViewDetails, onClose }) {
+export default function ScanModal({ assets, checkouts, initialCode, onBulkCheckout, onBulkReturn, onViewDetails, onClose }) {
   const videoRef    = useRef(null);
-  const canvasRef   = useRef(null);
   const streamRef   = useRef(null);
-  const rafRef      = useRef(null);
   const scanningRef = useRef(true);
   const cartIdsRef  = useRef(new Set());
   const lastScanRef = useRef({ code: "", t: 0 }); // per-code cooldown to avoid rapid re-reads
+  const handleRef   = useRef(null);
 
   const [cart,     setCart]     = useState([]);   // scanned assets
   const [error,    setError]    = useState("");
@@ -20,76 +19,89 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
   const [inForm,   setInForm]   = useState(null);  // { returnDate, returnCondition, returnNotes } | null
   const [busy,     setBusy]     = useState(false);
   const [done,     setDone]     = useState("");    // success message
+  const [typed,    setTyped]    = useState("");
+  const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
   useEffect(() => { cartIdsRef.current = new Set(cart.map(a => a.id)); }, [cart]);
   useEffect(() => { scanningRef.current = !outForm && !inForm; }, [outForm, inForm]);
 
-  useEffect(() => {
-    let active = true;
+  function flashMsg(type, text) {
+    setFlash({ type, text });
+    setTimeout(() => setFlash(f => (f?.text === text ? null : f)), 1800);
+  }
 
-    function flashMsg(type, text) {
-      setFlash({ type, text });
-      setTimeout(() => setFlash(f => (f?.text === text ? null : f)), 1600);
+  // One entry point for every source: camera, the code box, or a USB/Bluetooth scanner.
+  function handleCode(raw, fromCamera = false) {
+    const value = String(raw || "").trim();
+    if (!value) return;
+    if (fromCamera) {
+      // The camera reads one physical label many times a second — ignore
+      // repeats of the same code within 1.2s.
+      const key = value.toLowerCase(), now = Date.now();
+      if (key === lastScanRef.current.code && now - lastScanRef.current.t < 1200) { lastScanRef.current.t = now; return; }
+      lastScanRef.current = { code: key, t: now };
     }
+    const asset = findAssetByScan(assets, value);
+    if (!asset) {
+      flashMsg("notfound", `"${value}" doesn't match any asset code or serial number`);
+    } else if (cartIdsRef.current.has(asset.id)) {
+      flashMsg("dup", `${asset.name} already added`);
+    } else if (asset.status === "retired") {
+      flashMsg("retired", `${asset.name} is retired — can't process`);
+    } else {
+      cartIdsRef.current.add(asset.id); // guard synchronously, before the re-render
+      setCart(p => [...p, asset]);
+      setDone("");
+      flashMsg("added", `✓ Added ${asset.name}`);
+    }
+  }
+  handleRef.current = handleCode;
 
-    function loop() {
+  // Hardware scanner anywhere on the page (when the code box isn't focused).
+  useScannerWedge(code => handleRef.current(code));
+
+  // Opened by a hardware scan from another page → start with that item.
+  useEffect(() => { if (initialCode) handleRef.current(initialCode); }, [initialCode]);
+
+  useEffect(() => {
+    let active = true, timer = null;
+
+    async function loop(detector) {
       if (!active) return;
-      const video = videoRef.current, canvas = canvasRef.current;
-      if (scanningRef.current && video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const result = jsQR(imageData.data, imageData.width, imageData.height);
-        if (result?.data) {
-          const code = result.data.trim().toLowerCase();
-          const now  = Date.now();
-          // Ignore the same code if seen within the last 1.2s — the camera
-          // decodes ~60 frames/s, so one physical label reads many times.
-          if (code === lastScanRef.current.code && now - lastScanRef.current.t < 1200) {
-            lastScanRef.current.t = now;
-          } else {
-            lastScanRef.current = { code, t: now };
-            const asset = assets.find(a => a.code?.toLowerCase() === code);
-            if (!asset) {
-              flashMsg("notfound", `"${result.data.trim()}" doesn't match any asset`);
-            } else if (cartIdsRef.current.has(asset.id)) {
-              flashMsg("dup", `${asset.name} already added`);
-            } else if (asset.status === "retired") {
-              flashMsg("retired", `${asset.name} is retired — can't process`);
-            } else {
-              cartIdsRef.current.add(asset.id); // guard synchronously, before the re-render
-              setCart(p => [...p, asset]);
-              flashMsg("added", `✓ Added ${asset.name}`);
-            }
-          }
-        }
+      const video = videoRef.current;
+      if (scanningRef.current && video && video.readyState >= 2) {
+        try {
+          const found = await detector.detect(video);
+          if (active && found.length) handleRef.current(found[0].rawValue, true);
+        } catch { /* a dropped frame — keep going */ }
       }
-      rafRef.current = requestAnimationFrame(loop);
+      timer = setTimeout(() => loop(detector), 120);
     }
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } });
         if (!active) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
-        loop();
-      } catch {
-        setError("Camera access denied or unavailable. Allow camera permission in your browser and try again.");
+        const detector = await getDetector();
+        if (active) loop(detector);
+      } catch (e) {
+        if (active) setError(e?.name === "NotAllowedError"
+          ? "Camera permission was denied. Allow it in your browser settings, or use a barcode scanner / type the code below."
+          : "No camera available here — use a barcode scanner or type the code below.");
       }
     })();
 
     return () => {
       active = false;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      clearTimeout(timer);
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
-  }, [assets]);
+  }, []);
 
   function removeFromCart(id) { setCart(p => p.filter(a => a.id !== id)); }
 
@@ -122,14 +134,13 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
   return (
     <Modal title="Scan Assets" sub="Scan one item to act on it directly, or several to build a checkout/check-in batch" onClose={onClose} wide>
       <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-        {error && <div style={{ textAlign:"center", padding:"30px 10px", color:C.err, fontSize:13 }}>{error}</div>}
+        {error && <div style={{ textAlign:"center", padding:"18px 10px", color:C.mu, fontSize:13, background:C.el, borderRadius:12 }}>{error}</div>}
 
         {!error && (
           <div style={{ position:"relative", borderRadius:12, overflow:"hidden", background:"#000" }}>
             <video ref={videoRef} muted playsInline style={{ width:"100%", display:"block", height:"clamp(300px, 58dvh, 560px)", objectFit:"cover" }} />
-            <canvas ref={canvasRef} style={{ display:"none" }} />
             <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", pointerEvents:"none" }}>
-              <div style={{ width:"78%", maxWidth:420, maxHeight:"78%", aspectRatio:"1", border:`3px solid ${C.ac}`, borderRadius:18, boxShadow:"0 0 0 2000px rgba(0,0,0,0.35)" }} />
+              <div style={{ width:"86%", maxWidth:520, maxHeight:"72%", aspectRatio:"3 / 2", border:`3px solid ${C.ac}`, borderRadius:18, boxShadow:"0 0 0 2000px rgba(0,0,0,0.35)" }} />
             </div>
             {flash && (
               <div style={{ position:"absolute", bottom:10, left:10, right:10, background:flashColors[flash.type], color:"#fff", fontSize:12, fontWeight:600, padding:"7px 10px", borderRadius:8, textAlign:"center" }}>
@@ -139,10 +150,17 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
           </div>
         )}
 
+        {/* Typed codes, or a USB/Bluetooth scanner with this box focused */}
+        <form onSubmit={e => { e.preventDefault(); handleCode(typed); setTyped(""); }} style={{ display:"flex", gap:8 }}>
+          <input value={typed} onChange={e => setTyped(e.target.value)} placeholder="Scan with a barcode scanner, or type a code / serial" autoFocus={!touch} autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="go" />
+          <Btn onClick={() => { handleCode(typed); setTyped(""); }} variant="secondary" style={{ flexShrink:0 }}>Add</Btn>
+        </form>
+        {error && flash && <div style={{ textAlign:"center", fontSize:12.5, fontWeight:600, color:"#fff", background:flashColors[flash.type], padding:"7px 10px", borderRadius:8 }}>{flash.text}</div>}
+
         {done && <div style={{ textAlign:"center", fontSize:13, color:C.ok, fontWeight:600 }}>{done}</div>}
 
         {cart.length === 0 && !done && (
-          <div style={{ textAlign:"center", fontSize:13, color:C.mu, padding:"10px 0" }}>Point the camera at a printed QR label to begin.</div>
+          <div style={{ textAlign:"center", fontSize:13, color:C.mu, padding:"10px 0" }}>Point the camera at a label's QR code or barcode — or the maker's serial-number barcode.</div>
         )}
 
         {cart.length > 0 && (

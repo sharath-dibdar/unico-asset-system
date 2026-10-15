@@ -10,6 +10,7 @@
 //        params: printerName, printWidth/printHeight (0.01 mm), scaleUnit=1,
 //                threshold (0-255 b/w cutoff), jobName="dtpweb"
 import QRCode from "qrcode";
+import JsBarcode from "jsbarcode";
 
 const BASES = [
   "http://127.0.0.1:15216",
@@ -20,6 +21,12 @@ const BASES = [
 
 export const LABEL_W_MM = 50;
 export const LABEL_H_MM = 25;
+
+// Supported label stock. QR needs height; Code 128 fits the 15 mm strip.
+export const LABEL_SIZES = {
+  qr50x25:  { w: 50, h: 25, kind: "qr",      label: "50 × 25 mm · QR" },
+  bar50x15: { w: 50, h: 15, kind: "barcode", label: "50 × 15 mm · Barcode" },
+};
 const DPI = 203;
 const PX_PER_MM = DPI / 25.4;
 
@@ -110,10 +117,57 @@ export function labelDate(d) {
 const SANS = "Arial, Helvetica, sans-serif";
 const MONO = '"Courier New", Consolas, monospace';
 
-// Render one 50×25 mm label to a PNG data URL at printer resolution.
-// rotation (0/90/180/270) rotates the artwork within the label, for printers
-// that feed the media sideways.
-export async function renderLabel({ name, code, workstation, location, purchaseDate }, rotation = 0) {
+// 50×15 mm Code 128 label: barcode on top, code + name, then location · date
+// and a small logo. Only 0°/180° make sense — the barcode needs the long edge.
+async function renderBarcodeLabel({ name, code, location, purchaseDate }, rotation) {
+  const W = Math.round(50 * PX_PER_MM), H = Math.round(15 * PX_PER_MM); // 400 × 120
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+  g.imageSmoothingEnabled = false;
+
+  // Bars: 2 dots (0.25 mm) per module; fall back to 1 dot for very long codes
+  // so a ≥10-module quiet zone always remains on both sides.
+  const bars = document.createElement("canvas");
+  const draw = moduleW => JsBarcode(bars, String(code || ""), { format: "CODE128", width: moduleW, height: 58, margin: 0, displayValue: false, background: "#ffffff", lineColor: "#000000" });
+  draw(2);
+  if (bars.width > W - 2 * 10 * 2) draw(1);
+  g.drawImage(bars, Math.round((W - bars.width) / 2), 5);
+
+  const pad = 10, logo = await loadLogo();
+  g.fillStyle = "#000"; g.textBaseline = "top";
+  // Line 1: code (bold mono) left, name right
+  let y = 68;
+  g.font = `bold 17px ${MONO}`;
+  const codeTxt = wrap(g, code, W - 2 * pad, 1)[0] || "";
+  g.fillText(codeTxt, pad, y);
+  const cw = g.measureText(codeTxt).width + 12;
+  g.font = `bold 14px ${SANS}`;
+  const nm = wrap(g, name, W - 2 * pad - cw, 1)[0] || "";
+  g.textAlign = "right"; g.fillText(nm, W - pad, y + 2); g.textAlign = "left";
+  // Line 2: location · date left, logo right
+  y = 91;
+  const logoH = logo ? 14 : 0, logoW = logoH * LOGO_RATIO;
+  if (logo) g.drawImage(logo, W - pad - logoW, y + 1, logoW, logoH);
+  const meta = [location, labelDate(purchaseDate)].filter(Boolean).join("  ·  ");
+  g.font = `14px ${SANS}`;
+  g.fillText(wrap(g, meta, W - 2 * pad - logoW - 10, 1)[0] || "", pad, y);
+
+  if (rotation !== 180) return c.toDataURL("image/png");
+  const out = document.createElement("canvas");
+  out.width = W; out.height = H;
+  const o = out.getContext("2d");
+  o.translate(W, H); o.rotate(Math.PI); o.drawImage(c, 0, 0);
+  return out.toDataURL("image/png");
+}
+
+// Render one label to a PNG data URL at printer resolution.
+// size: a LABEL_SIZES key. rotation (0/90/180/270) rotates the artwork within
+// the label, for printers that feed the media sideways.
+export async function renderLabel(data, rotation = 0, size = "qr50x25") {
+  if (LABEL_SIZES[size]?.kind === "barcode") return renderBarcodeLabel(data, rotation === 180 ? 180 : 0);
+  const { name, code, workstation, location, purchaseDate } = data;
   const W = Math.round(LABEL_W_MM * PX_PER_MM); // 400
   const H = Math.round(LABEL_H_MM * PX_PER_MM); // 200
   const portrait = rotation === 90 || rotation === 270;
@@ -221,11 +275,12 @@ export async function renderLabel({ name, code, workstation, location, purchaseD
 }
 
 // Print one rendered label. Returns true on success.
-export async function printImage(base, printerName, dataUrl, { threshold = 160 } = {}) {
+export async function printImage(base, printerName, dataUrl, { threshold = 160, size = "qr50x25" } = {}) {
+  const dims = LABEL_SIZES[size] || LABEL_SIZES.qr50x25;
   const params = {
     printerName,
-    printWidth: LABEL_W_MM * 100,
-    printHeight: LABEL_H_MM * 100,
+    printWidth: dims.w * 100,
+    printHeight: dims.h * 100,
     scaleUnit: 1,
     threshold,
     jobName: "dtpweb",
