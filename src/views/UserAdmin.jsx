@@ -96,7 +96,50 @@ function SessionsTab() {
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-export default function UserAdmin() {
+// One-time tool: move attachments stored inside asset rows into Storage.
+function FileStorageCard({ count, onMigrate }) {
+  const [run, setRun] = useState(null); // null | progress/result object
+  const running = run && run.done < run.total;
+  if (!count && !run) return null;
+
+  async function start() {
+    if (!confirm(`Move attachments for ${count} asset${count !== 1 ? "s" : ""} into file storage?\n\nEach file is uploaded and verified before its asset is updated. Anything that fails is left unchanged.`)) return;
+    setRun({ total: count, done: 0, moved: 0, failed: [] });
+    const res = await onMigrate(p => setRun(p));
+    setRun({ ...res, done: res.total });
+  }
+
+  return (
+    <Section title="File storage" sub="Photos and documents are being moved out of the asset list so the app loads faster.">
+      {!run && (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
+          <div style={{ fontSize:13, color:C.mu }}>
+            <strong style={{ color:C.tx }}>{count} asset{count !== 1 ? "s" : ""}</strong> still {count !== 1 ? "carry" : "carries"} attachments inside the asset list.
+            Run <code style={{ background:C.el, padding:"1px 5px", borderRadius:4 }}>supabase/migration_004_file_storage.sql</code> first.
+          </div>
+          <Btn onClick={start} variant="primary">Move to storage</Btn>
+        </div>
+      )}
+      {run && (
+        <div style={{ fontSize:13, lineHeight:1.6 }}>
+          {running
+            ? <div style={{ color:C.mu }}>Moving… {run.done} of {run.total}</div>
+            : <div style={{ color:run.failed.length ? C.err : C.ok, fontWeight:700 }}>
+                {run.moved} of {run.total} moved{run.failed.length ? ` · ${run.failed.length} left unchanged` : " ✓"}
+              </div>}
+          {run.failed.length > 0 && (
+            <ul style={{ margin:"6px 0 0 18px", color:C.mu, fontSize:12 }}>
+              {run.failed.map(f => <li key={f}>{f}</li>)}
+            </ul>
+          )}
+          {!running && count > 0 && <div style={{ marginTop:8 }}><Btn onClick={start} variant="secondary">Retry remaining ({count})</Btn></div>}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+export default function UserAdmin({ inlineFileAssets = 0, onMigrateAttachments }) {
   const { users, sessions, me, addUser, updateUser, deactivateUser, reactivateUser, refreshAdminData } = useAuth();
   const [tab,     setTab]   = useState("users");
   const [modal,   setModal] = useState(null); // null | "add" | user object
@@ -124,6 +167,8 @@ export default function UserAdmin() {
 
   return (
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:18, maxWidth:860 }}>
+      {onMigrateAttachments && <FileStorageCard count={inlineFileAssets} onMigrate={onMigrateAttachments} />}
+
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
         <div style={{ display:"flex", gap:4 }}>

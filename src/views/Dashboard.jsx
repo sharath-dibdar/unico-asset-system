@@ -1,4 +1,5 @@
-﻿import { AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
+﻿import { StoredImg } from "../lib/files.jsx";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
 import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, dTo, calcDep } from "../utils.js";
 import { StatCard, Badge, Label } from "../components/UI.jsx";
@@ -106,7 +107,7 @@ export default function Dashboard({ assets, vendors, audits, checkouts, openDeta
             <div key={a.id} onClick={()=>openDetail(a)} style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 0", borderBottom:`1px solid ${C.br}`, cursor:"pointer" }}
               onMouseEnter={e=>e.currentTarget.style.opacity="0.75"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
               {a.photos?.[0]
-                ? <img src={a.photos[0]} alt="" style={{ width:36, height:36, borderRadius:9, objectFit:"cover", flexShrink:0 }} />
+                ? <StoredImg item={a.photos[0]} style={{ width:36, height:36, borderRadius:9, objectFit:"cover", flexShrink:0 }} />
                 : <div style={{ width:36, height:36, background:C.el, borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}><CatIcon cat={a.cat} /></div>
               }
               <div style={{ flex:1, minWidth:0 }}>

@@ -1,4 +1,5 @@
-﻿import { useState } from "react";
+﻿import { StoredImg, DocLink, docSizeKB } from "../lib/files.jsx";
+import { useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
 import { C, CATS, SPEC_DEF, SERVICE_TYPES } from "../constants.js";
 import { fINR, fDate, dTo, calcDep, uid } from "../utils.js";
@@ -93,7 +94,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
               <Label>Photos</Label>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginTop:8 }}>
                 {a.photos.slice(0,4).map((ph,i)=>(
-                  <img key={i} src={ph} alt="" style={{ width:"100%", aspectRatio:"1", objectFit:"cover", borderRadius:8 }} />
+                  <StoredImg key={i} item={ph} style={{ width:"100%", aspectRatio:"1", objectFit:"cover", borderRadius:8 }} />
                 ))}
               </div>
             </div>
@@ -271,9 +272,9 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
                         <span style={{ fontSize:20 }}>{doc.type?.includes("pdf")?"📄":"🖼"}</span>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</div>
-                          <div style={{ fontSize:11, color:C.mu }}>{doc.uploadedAt?.split("T")[0]||""} · {Math.round((doc.data?.length||0)*0.75/1024)} KB</div>
+                          <div style={{ fontSize:11, color:C.mu }}>{doc.uploadedAt?.split("T")[0]||""} · {docSizeKB(doc)} KB</div>
                         </div>
-                        <a href={doc.data} download={doc.name} style={{ color:C.acD, fontSize:12, fontWeight:600, textDecoration:"none" }}>⬇ Download</a>
+                        <DocLink doc={doc} style={{ color:C.acD, fontSize:12, fontWeight:600, textDecoration:"none" }}>⬇ Download</DocLink>
                       </div>
                     ))}
                   </div>

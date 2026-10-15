@@ -1,4 +1,5 @@
-﻿import { useState, useRef } from "react";
+﻿import { StoredImg } from "../lib/files.jsx";
+import { useState, useRef } from "react";
 import { C, CATS, SPEC_DEF, PAYMENT_MODES } from "../constants.js";
 import { calcDep, compressImage, fINR } from "../utils.js";
 import { Label, Btn, AssigneeSelect, TagInput } from "../components/UI.jsx";
@@ -96,7 +97,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:6 }}>
                   {(form.photos||[]).map((ph,i)=>(
                     <div key={i} style={{ position:"relative" }}>
-                      <img src={ph} alt="" style={{ width:70, height:70, objectFit:"cover", borderRadius:8, border:`1px solid ${C.br}` }} />
+                      <StoredImg item={ph} style={{ width:70, height:70, objectFit:"cover", borderRadius:8, border:`1px solid ${C.br}` }} />
                       <button onClick={()=>setForm(p=>({...p,photos:p.photos.filter((_,j)=>j!==i)}))}
                         style={{ position:"absolute", top:2, right:2, background:"rgba(0,0,0,0.7)", border:"none", color:"#fff", borderRadius:"50%", width:18, height:18, cursor:"pointer", fontSize:12, display:"flex", alignItems:"center", justifyContent:"center", lineHeight:1 }}>×</button>
                     </div>

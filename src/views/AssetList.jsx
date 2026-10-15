@@ -1,4 +1,5 @@
-﻿import { CatIcon } from "../components/Icons.jsx";
+﻿import { StoredImg } from "../lib/files.jsx";
+import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, dTo, calcDep } from "../utils.js";
 import { Badge } from "../components/UI.jsx";
@@ -42,7 +43,7 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
               onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.br; e.currentTarget.style.background=C.sf; }}>
               {/* thumbnail or emoji */}
               {a.photos?.[0]
-                ? <img src={a.photos[0]} alt="" style={{ width:42, height:42, borderRadius:10, objectFit:"cover", flexShrink:0 }} />
+                ? <StoredImg item={a.photos[0]} style={{ width:42, height:42, borderRadius:10, objectFit:"cover", flexShrink:0 }} />
                 : <div style={{ width:42, height:42, background:C.el, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:19, flexShrink:0 }}><CatIcon cat={a.cat} /></div>
               }
               <div style={{ flex:1, minWidth:0 }}>

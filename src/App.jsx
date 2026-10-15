@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C, CATS } from "./constants.js";
 import { calcDep, uid, nextCode, migrateAsset } from "./utils.js";
 import { db } from "./lib/db.js";
+import { hasInlineFiles, externalizeAttachments } from "./lib/files.jsx";
 import { Sidebar, TopBar, BottomNav } from "./components/Nav.jsx";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import LoginPage from "./auth/LoginPage.jsx";
@@ -174,6 +175,20 @@ function AppInner() {
     }
     closeModal();
 
+    // Move any newly attached photos/documents out of the row into Storage.
+    // If the upload fails (e.g. bucket not set up yet) the files stay inline,
+    // exactly as before — nothing is lost.
+    if (hasInlineFiles(saved)) {
+      try {
+        const stored = await externalizeAttachments(saved);
+        saved = stored;
+        setAssets(p => p.map(a => a.id === stored.id ? stored : a));
+        setSel(s => s?.id === stored.id ? stored : s);
+      } catch (e) {
+        console.warn("[files] keeping attachments inline:", e.message);
+      }
+    }
+
     // Persist to Supabase. If the write is rejected (e.g. RLS blocks the
     // insert because this account isn't recognised as an admin in the DB),
     // roll back the optimistic UI change so the screen matches reality
@@ -191,6 +206,29 @@ function AppInner() {
       }
       alert(`Couldn't save this asset — the change was not stored.\n\n${error || "Unknown error"}\n\nIf this says "row-level security", your account isn't linked as an admin in the database. Run supabase/migration_003_fix_profile_linking.sql.`);
     }
+  }
+
+  // One-time move of inline attachments into Storage (Users & Access →
+  // File storage). Per asset: upload + verify every file, then save the row.
+  // The row in the app is only swapped once the database write succeeds, and
+  // any failure leaves that asset exactly as it was.
+  async function migrateAttachments(onProgress) {
+    const targets = assets.filter(hasInlineFiles);
+    const result = { total: targets.length, moved: 0, failed: [] };
+    for (const a of targets) {
+      try {
+        const stored = await externalizeAttachments(a);
+        const { ok, error } = await db.assets.upsert(stored);
+        if (!ok) throw new Error(error || "database write failed");
+        setAssets(p => p.map(x => x.id === a.id ? stored : x));
+        setSel(s => s?.id === a.id ? stored : s);
+        result.moved++;
+      } catch (e) {
+        result.failed.push(`${a.name} (${a.code}): ${e.message}`);
+      }
+      onProgress?.({ ...result, done: result.moved + result.failed.length });
+    }
+    return result;
   }
 
   async function deleteAsset(id) {
@@ -484,7 +522,7 @@ function AppInner() {
           {view==="reports"    && isAdmin && <Reports assets={assets} checkouts={checkouts} vendors={vendors} />}
           {view==="checkout"   && <Checkout checkouts={checkouts} assets={assets} onReturn={co=>setModal({type:"return",data:co})} onNewCheckout={()=>setModal({type:"checkout"})} onReturnBatch={returnBatch} />}
           {view==="workstations" && <Workstations workstations={workstations} assets={assets} isAdmin={isAdmin} onAdd={()=>setModal({type:"workstation"})} onEdit={w=>setModal({type:"workstation",data:w})} onDelete={deleteWorkstation} onCheckOut={w=>setModal({type:"workstationCheckout",data:w})} onCheckIn={w=>setModal({type:"workstationReturn",data:w})} />}
-          {view==="useradmin"  && isAdmin && <UserAdmin />}
+          {view==="useradmin"  && isAdmin && <UserAdmin inlineFileAssets={assets.filter(hasInlineFiles).length} onMigrateAttachments={migrateAttachments} />}
         </div>
 
         <BottomNav view={view} setView={setView} assets={assets} audits={audits} onScan={() => setModal({type:"scan"})}
