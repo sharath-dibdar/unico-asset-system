@@ -179,12 +179,12 @@ export function downloadImportTemplate() {
 // ─── WePrint Label Export ─────────────────────────────────────────────────────
 // Produces an .xlsx the Seznik WePrint app/webapp can bulk-print from.
 // Columns map to template fields: bind a QRCode element to "Code" and Text
-// elements to "Name" / "Code" / "Workstation".
+// elements to "Name" / "Code" / "Location" / "Purchased" / "Workstation".
 export function exportWePrintLabels(rows) {
-  const headers = ["Name", "Code", "Workstation"];
-  const aoa = [headers, ...rows.map(r => [r.name, r.code, r.workstation || ""])];
+  const headers = ["Name", "Code", "Location", "Purchased", "Workstation"];
+  const aoa = [headers, ...rows.map(r => [r.name, r.code, r.location || "", r.purchased || "", r.workstation || ""])];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 32 }, { wch: 18 }, { wch: 24 }];
+  ws["!cols"] = [{ wch: 32 }, { wch: 18 }, { wch: 24 }, { wch: 14 }, { wch: 24 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Labels");
   XLSX.writeFile(wb, "unico-weprint-labels.xlsx");

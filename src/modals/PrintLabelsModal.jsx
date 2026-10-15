@@ -3,7 +3,7 @@ import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS } from "../constants.js";
 import { Btn, Modal } from "../components/UI.jsx";
 import { exportWePrintLabels } from "../utils.js";
-import { detectHelper, getPrinters, renderLabel, printImage, loadPrintSettings, savePrintSettings } from "../lib/labelPrinter.js";
+import { detectHelper, getPrinters, renderLabel, printImage, loadPrintSettings, savePrintSettings, labelDate } from "../lib/labelPrinter.js";
 
 const MODES = [
   ["direct",  "🖨 Label Printer", "Print directly · DP27"],
@@ -40,7 +40,7 @@ export default function PrintLabelsModal({ assets, workstations = [], preselectI
     const ws = workstations.find(w => w.assetIds?.includes(assetId));
     return ws ? ws.name : null;
   }
-  const labelData = a => ({ name: a.name, code: a.code, workstation: getWorkstationName(a.id) || "" });
+  const labelData = a => ({ name: a.name, code: a.code, workstation: getWorkstationName(a.id) || "", location: a.loc || "", purchaseDate: a.pDate || "" });
 
   // ─── Direct print ──────────────────────────────────────────────────────────
   async function connect() {
@@ -89,7 +89,7 @@ export default function PrintLabelsModal({ assets, workstations = [], preselectI
 
   // ─── WePrint / A4 ──────────────────────────────────────────────────────────
   function exportForWePrint() {
-    exportWePrintLabels(selAssets.map(labelData));
+    exportWePrintLabels(selAssets.map(a => ({ ...labelData(a), purchased: labelDate(a.pDate) })));
   }
 
   function buildFlatLabelHtml(a) {
@@ -98,9 +98,12 @@ export default function PrintLabelsModal({ assets, workstations = [], preselectI
     return `<div class="label">
   <img class="qr" src="${qrUrl}" alt="${a.code}" />
   <div class="info">
+    <img class="logo" src="${location.origin}/label-logo.svg" alt="Unico" />
     <div class="name">${a.name.slice(0, 45)}</div>
     <div class="code">${a.code}</div>
-    ${wsName ? `<div class="ws">🖥 ${wsName.slice(0, 28)}</div>` : ""}
+    ${a.loc ? `<div class="ws"><b>Loc:</b> ${a.loc.slice(0, 30)}</div>` : ""}
+    ${labelDate(a.pDate) ? `<div class="ws"><b>Purchased:</b> ${labelDate(a.pDate)}</div>` : ""}
+    ${wsName ? `<div class="ws"><b>WS:</b> ${wsName.slice(0, 28)}</div>` : ""}
   </div>
 </div>`;
   }
@@ -125,7 +128,8 @@ export default function PrintLabelsModal({ assets, workstations = [], preselectI
   .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:0.8mm;}
   .name{font-size:6.5pt;font-weight:700;line-height:1.25;word-break:break-word;}
   .code{font-size:6pt;font-family:'Courier New',monospace;color:#444;}
-  .ws{font-size:5.5pt;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ws{font-size:5.5pt;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .logo{height:3mm;width:auto;align-self:flex-start;margin-bottom:0.6mm;}
   .no-print{padding:12px 16px;background:#f5f5f5;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;font-family:system-ui;}
   @media print{.no-print{display:none!important;}}
 </style></head>

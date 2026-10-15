@@ -85,10 +85,35 @@ function wrap(ctx, text, maxW, maxLines) {
   return lines;
 }
 
+// Unico logo (public/label-logo.svg, 1533×445), loaded once and reused.
+let logoPromise;
+function loadLogo() {
+  if (!logoPromise) {
+    logoPromise = new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null); // label still prints without it
+      img.src = "/label-logo.svg";
+    });
+  }
+  return logoPromise;
+}
+const LOGO_RATIO = 1533.25 / 444.86;
+
+// "2023-04-05" → "05 Apr 2023"; blank when missing.
+export function labelDate(d) {
+  if (!d || d === "N/A") return "";
+  const dt = new Date(d);
+  return isNaN(dt) ? "" : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const SANS = "Arial, Helvetica, sans-serif";
+const MONO = '"Courier New", Consolas, monospace';
+
 // Render one 50×25 mm label to a PNG data URL at printer resolution.
 // rotation (0/90/180/270) rotates the artwork within the label, for printers
 // that feed the media sideways.
-export async function renderLabel({ name, code, workstation }, rotation = 0) {
+export async function renderLabel({ name, code, workstation, location, purchaseDate }, rotation = 0) {
   const W = Math.round(LABEL_W_MM * PX_PER_MM); // 400
   const H = Math.round(LABEL_H_MM * PX_PER_MM); // 200
   const portrait = rotation === 90 || rotation === 270;
@@ -102,47 +127,85 @@ export async function renderLabel({ name, code, workstation }, rotation = 0) {
   a.imageSmoothingEnabled = false;
 
   const pad = Math.round(1.5 * PX_PER_MM);
-  const qrCanvas = document.createElement("canvas");
-  await QRCode.toCanvas(qrCanvas, String(code || ""), { margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
+  const [logo, qrCanvas] = await Promise.all([loadLogo(), (async () => {
+    const c = document.createElement("canvas");
+    await QRCode.toCanvas(c, String(code || ""), { margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
+    return c;
+  })()]);
+
+  const meta = [
+    ["Loc", location],
+    ["Purchased", labelDate(purchaseDate)],
+    ["WS", workstation],
+  ].filter(([, v]) => v);
 
   a.fillStyle = "#000";
   a.textBaseline = "top";
-  if (!portrait) {
-    // QR left, text right
-    const qr = ch - pad * 2;
-    a.drawImage(qrCanvas, pad, pad, qr, qr);
-    const tx = pad + qr + Math.round(2 * PX_PER_MM);
-    const tw = cw - tx - pad;
-    const nameFont = 22, codeFont = 20, wsFont = 17;
-    a.font = `bold ${nameFont}px Arial, Helvetica, sans-serif`;
-    const nameLines = wrap(a, name, tw, 3);
-    const blockH = nameLines.length * nameFont * 1.15 + 6 + codeFont * 1.15 + (workstation ? 4 + wsFont * 1.15 : 0);
-    let y = Math.max(pad, (ch - blockH) / 2);
-    nameLines.forEach(l => { a.fillText(l, tx, y); y += nameFont * 1.15; });
-    y += 6;
-    a.font = `bold ${codeFont}px "Courier New", Consolas, monospace`;
-    a.fillText(wrap(a, code, tw, 1)[0] || "", tx, y); y += codeFont * 1.15;
-    if (workstation) {
-      y += 4;
-      a.font = `${wsFont}px Arial, Helvetica, sans-serif`;
-      a.fillText(wrap(a, "WS: " + workstation, tw, 1)[0] || "", tx, y);
+
+  // Lay out the text block at scale s; returns its height, drawing only if `draw`.
+  // Shrinks fonts in steps until everything fits the available height.
+  const textBlock = (x, top, width, s, align, draw) => {
+    const nameF = Math.round(21 * s), codeF = Math.round(18 * s), metaF = Math.round(15 * s);
+    const logoH = logo ? Math.round(28 * s) : 0;
+    let y = top;
+    const ax = align === "center" ? x + width / 2 : x;
+    a.textAlign = align;
+    if (logo) {
+      const lw = logoH * LOGO_RATIO;
+      if (draw) a.drawImage(logo, align === "center" ? x + (width - lw) / 2 : x, y, lw, logoH);
+      y += logoH + Math.round(8 * s);
     }
+    a.font = `bold ${nameF}px ${SANS}`;
+    for (const l of wrap(a, name, width, 2)) { if (draw) a.fillText(l, ax, y); y += nameF * 1.15; }
+    y += 3;
+    a.font = `bold ${codeF}px ${MONO}`;
+    if (draw) a.fillText(wrap(a, code, width, 1)[0] || "", ax, y);
+    y += codeF * 1.15 + 4;
+    for (const [label, value] of meta) {
+      a.font = `bold ${metaF}px ${SANS}`;
+      const prefix = `${label}: `;
+      const pw = a.measureText(prefix).width;
+      a.font = `${metaF}px ${SANS}`;
+      const rest = wrap(a, value, width - pw, 1)[0] || "";
+      if (draw) {
+        if (align === "center") {
+          const full = pw + a.measureText(rest).width;
+          const sx = x + (width - full) / 2;
+          a.textAlign = "left";
+          a.font = `bold ${metaF}px ${SANS}`; a.fillText(prefix, sx, y);
+          a.font = `${metaF}px ${SANS}`;      a.fillText(rest, sx + pw, y);
+          a.textAlign = align;
+        } else {
+          a.font = `bold ${metaF}px ${SANS}`; a.fillText(prefix, x, y);
+          a.font = `${metaF}px ${SANS}`;      a.fillText(rest, x + pw, y);
+        }
+      }
+      y += metaF * 1.25;
+    }
+    return y - top;
+  };
+  const fit = (x, top, width, avail, align) => {
+    let s = 1;
+    while (s > 0.7 && textBlock(x, top, width, s, align, false) > avail) s -= 0.05;
+    return s;
+  };
+
+  if (!portrait) {
+    // QR left (~19 mm), logo + details right, vertically centred
+    const qr = 150; // px ≈ 19 mm at 203 dpi
+    a.drawImage(qrCanvas, pad, Math.round((ch - qr) / 2), qr, qr);
+    const tx = pad + qr + Math.round(1.8 * PX_PER_MM);
+    const tw = cw - tx - pad;
+    const s = fit(tx, 0, tw, ch - pad * 2, "left");
+    const h = textBlock(tx, 0, tw, s, "left", false);
+    textBlock(tx, Math.max(pad, Math.round((ch - h) / 2)), tw, s, "left", true);
   } else {
-    // Portrait artwork: QR top, text below (centered)
+    // Portrait artwork: QR top, logo + details below (centred)
     const qr = cw - pad * 2;
     a.drawImage(qrCanvas, pad, pad, qr, qr);
-    a.textAlign = "center";
-    const tw = cw - pad * 2;
-    let y = pad + qr + 8;
-    a.font = `bold 20px Arial, Helvetica, sans-serif`;
-    wrap(a, name, tw, 3).forEach(l => { a.fillText(l, cw / 2, y); y += 23; });
-    y += 4;
-    a.font = `bold 18px "Courier New", Consolas, monospace`;
-    a.fillText(wrap(a, code, tw, 1)[0] || "", cw / 2, y); y += 22;
-    if (workstation) {
-      a.font = `15px Arial, Helvetica, sans-serif`;
-      a.fillText(wrap(a, workstation, tw, 1)[0] || "", cw / 2, y + 2);
-    }
+    const top = pad + qr + 10;
+    const s = fit(pad, top, cw - pad * 2, ch - top - pad, "center");
+    textBlock(pad, top, cw - pad * 2, s, "center", true);
   }
 
   // Compose onto the final W×H label, rotated.
