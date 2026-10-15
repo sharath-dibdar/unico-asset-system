@@ -1,4 +1,5 @@
-﻿import { useState, useRef } from "react";
+﻿import { CatIcon } from "../components/Icons.jsx";
+import { useState, useRef } from "react";
 import { C, CATS, ST_CFG } from "../constants.js";
 import { parseImportFile, downloadImportTemplate, uid, nextCode } from "../utils.js";
 import { Label, Btn, Modal } from "../components/UI.jsx";

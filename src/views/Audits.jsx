@@ -1,4 +1,5 @@
-﻿import { C, CATS } from "../constants.js";
+﻿import { CatIcon } from "../components/Icons.jsx";
+import { C, CATS } from "../constants.js";
 import { fDate } from "../utils.js";
 import { Btn, Badge, EmptyState, Label } from "../components/UI.jsx";
 

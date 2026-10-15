@@ -1,4 +1,5 @@
-﻿import { C, CATS, ST_CFG } from "../constants.js";
+﻿import { CatIcon } from "../components/Icons.jsx";
+import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, fDate, calcDep, dTo } from "../utils.js";
 import { generateAssetCSV, generateDepCSV, generateTallyXML, generateZohoCSV, generateDisposalCSV, downloadFile } from "../utils.js";
 import { Section, Btn, Label } from "../components/UI.jsx";

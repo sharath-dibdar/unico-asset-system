@@ -1,4 +1,5 @@
-﻿import { C, CATS, ST_CFG } from "../constants.js";
+﻿import { CatIcon } from "../components/Icons.jsx";
+import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, dTo, calcDep } from "../utils.js";
 import { Badge } from "../components/UI.jsx";
 
