@@ -126,10 +126,10 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
 
         {!error && (
           <div style={{ position:"relative", borderRadius:12, overflow:"hidden", background:"#000" }}>
-            <video ref={videoRef} muted playsInline style={{ width:"100%", display:"block", maxHeight:280, objectFit:"cover" }} />
+            <video ref={videoRef} muted playsInline style={{ width:"100%", display:"block", height:"clamp(300px, 58dvh, 560px)", objectFit:"cover" }} />
             <canvas ref={canvasRef} style={{ display:"none" }} />
             <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", pointerEvents:"none" }}>
-              <div style={{ width:"46%", aspectRatio:"1", border:`2px solid ${C.ac}`, borderRadius:14, boxShadow:"0 0 0 2000px rgba(0,0,0,0.4)" }} />
+              <div style={{ width:"78%", maxWidth:420, maxHeight:"78%", aspectRatio:"1", border:`3px solid ${C.ac}`, borderRadius:18, boxShadow:"0 0 0 2000px rgba(0,0,0,0.35)" }} />
             </div>
             {flash && (
               <div style={{ position:"absolute", bottom:10, left:10, right:10, background:flashColors[flash.type], color:"#fff", fontSize:12, fontWeight:600, padding:"7px 10px", borderRadius:8, textAlign:"center" }}>

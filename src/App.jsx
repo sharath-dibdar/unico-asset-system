@@ -70,7 +70,11 @@ function GlobalStyles() {
         .detail-actions{justify-content:flex-start!important;}
         .modal-wrap{padding:0!important;align-items:stretch!important;}
         .modal-box{max-width:none!important;max-height:none!important;height:100%;border-radius:0!important;border:none!important;}
-        .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))!important;}
+        .modal-head{padding:14px 16px 12px!important;}
+        .modal-body{padding:16px!important;}
+        .modal-foot{padding:12px 16px calc(12px + env(safe-area-inset-bottom))!important;}
+        .stat-card{gap:10px!important;}
+        .stat-val{font-size:clamp(18px,5.4vw,26px)!important;}
       }
     `}</style>
   );

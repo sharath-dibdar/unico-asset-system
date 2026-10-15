@@ -1,3 +1,4 @@
+import { Monitor } from "lucide-react";
 import { C, CATS } from "../constants.js";
 import { CatIcon } from "../components/Icons.jsx";
 import { Badge, Btn, EmptyState } from "../components/UI.jsx";
@@ -5,7 +6,7 @@ import { Badge, Btn, EmptyState } from "../components/UI.jsx";
 export default function Workstations({ workstations, assets, isAdmin, onAdd, onEdit, onDelete, onCheckOut, onCheckIn }) {
   if (workstations.length === 0) return (
     <div className="fade">
-      <EmptyState icon="🖥️" title="No workstations yet" sub="Bundle assets like a CPU, monitor, and keyboard so they can be assigned and checked out together." />
+      <EmptyState icon={Monitor} title="No workstations yet" sub="Bundle assets like a CPU, monitor, and keyboard so they can be assigned and checked out together." />
       {isAdmin && <div style={{ textAlign:"center", marginTop:16 }}><Btn onClick={onAdd} variant="primary">+ Create First Workstation</Btn></div>}
     </div>
   );

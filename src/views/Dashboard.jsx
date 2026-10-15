@@ -4,6 +4,7 @@ import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, dTo, calcDep } from "../utils.js";
 import { StatCard, Badge, Label } from "../components/UI.jsx";
 import { CatIcon } from "../components/Icons.jsx";
+import { Package, Wallet, TrendingDown, ShieldAlert, ArrowLeftRight, Recycle, ClipboardCheck, Store } from "lucide-react";
 
 export default function Dashboard({ assets, vendors, audits, checkouts, openDetail, totalV, totalBV, setView, isAdmin }) {
   const warnings    = assets.filter(a=>{ const d=dTo(a.wEnd); return d!==null&&d<=90; }).sort((a,b)=>dTo(a.wEnd)-dTo(b.wEnd));
@@ -52,19 +53,19 @@ export default function Dashboard({ assets, vendors, audits, checkouts, openDeta
   return (
     <div className="fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
       {/* KPI row 1 */}
-      <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
-        <StatCard label="Total Assets"      val={assets.length}   sub="Across 6 categories"               icon="📦" color={C.ac}  onClick={()=>setView("list")} />
-        {isAdmin && <StatCard label="Purchase Value"     val={fINR(totalV)}    sub="All assets combined"               icon="💰" color={C.ac2} />}
-        {isAdmin && <StatCard label="Current Book Value" val={fINR(totalBV)}   sub={`${depPct}% depreciated (IT Act)`} icon="📊" color={C.ok}  />}
-        <StatCard label="Warranty Alerts"   val={warnings.length} sub="Expiring within 90 days"           icon="⚠️" color={warnings.length>0?C.err:C.ok} onClick={()=>{}} />
+      <div className="stat-row" style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
+        <StatCard label="Total Assets"      val={assets.length}   sub="Across 6 categories"               icon={Package}       color={C.ac}  onClick={()=>setView("list")} />
+        {isAdmin && <StatCard label="Purchase Value"     val={fINR(totalV)}    sub="All assets combined"               icon={Wallet}        color={C.ac2} />}
+        {isAdmin && <StatCard label="Book Value" val={fINR(totalBV)}   sub={`${depPct}% depreciated (IT Act)`} icon={TrendingDown}  color={C.ok}  />}
+        <StatCard label="Warranty Alerts"   val={warnings.length} sub="Expiring within 90 days"           icon={ShieldAlert}   color={warnings.length>0?C.err:C.ok} />
       </div>
 
       {/* KPI row 2 */}
-      <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
-        <StatCard label="Currently Out"  val={checkedOut}           sub="Assets checked out"   icon="⇄"  color={C.ac2} onClick={()=>setView("checkout")} />
-        {isAdmin && <StatCard label="Disposal Value" val={fINR(disposalVal)} sub={`${disposed} assets retired`} icon="♻️" color={C.mu} />}
-        <StatCard label="Pending Audits" val={pendingAudits}        sub="Physical audit tasks" icon="📋" color={pendingAudits>0?C.ac2:C.ok} onClick={()=>setView("audits")} />
-        {isAdmin && <StatCard label="Vendors" val={(vendors||[]).length} sub="In vendor book"  icon="🏪" color={C.mu} onClick={()=>setView("vendors")} />}
+      <div className="stat-row" style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
+        <StatCard label="Currently Out"  val={checkedOut}           sub="Assets checked out"   icon={ArrowLeftRight} color={C.ac2} onClick={()=>setView("checkout")} />
+        {isAdmin && <StatCard label="Disposal Value" val={fINR(disposalVal)} sub={`${disposed} assets retired`} icon={Recycle}  color={C.mu} />}
+        <StatCard label="Pending Audits" val={pendingAudits}        sub="Physical audit tasks" icon={ClipboardCheck} color={pendingAudits>0?C.ac2:C.ok} onClick={()=>setView("audits")} />
+        {isAdmin && <StatCard label="Vendors" val={(vendors||[]).length} sub="In vendor book"  icon={Store}          color={C.mu} onClick={()=>setView("vendors")} />}
       </div>
 
       <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
@@ -77,7 +78,7 @@ export default function Dashboard({ assets, vendors, audits, checkouts, openDeta
 
           {insWarnings.length>0 && (
             <>
-              <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:13, margin:"14px 0 10px", color:C.ac2 }}>🛡  Insurance Renewals Due</div>
+              <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:13, margin:"14px 0 10px", color:C.ac2, display:"flex", alignItems:"center", gap:6 }}><ShieldAlert size={15} strokeWidth={2.2} /> Insurance Renewals Due</div>
               {insWarnings.slice(0,3).map(a => {
                 const d = dTo(a.insurance?.renewalDate);
                 return (

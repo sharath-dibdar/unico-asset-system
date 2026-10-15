@@ -1,6 +1,7 @@
 ﻿import { useState } from "react";
 import { C, ST_CFG } from "../constants.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { ChevronRight, Package } from "lucide-react";
 
 export const Badge = ({ s }) => {
   const cfg = ST_CFG[s]||ST_CFG.active;
@@ -18,20 +19,28 @@ export const FieldVal = ({ label, val, mono, accent, wide }) => val ? (
   </div>
 ) : null;
 
-export const StatCard = ({ label, val, sub, icon, color=C.tx, onClick }) => (
-  <div onClick={onClick} style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:16, padding:"20px 22px", flex:1, minWidth:160, cursor:onClick?"pointer":"default", boxShadow:C.shadow, transition:"border-color 0.2s, box-shadow 0.2s" }}
-    onMouseEnter={e=>onClick&&(e.currentTarget.style.borderColor=color,e.currentTarget.style.boxShadow=C.shadowLg)}
-    onMouseLeave={e=>onClick&&(e.currentTarget.style.borderColor=C.br,e.currentTarget.style.boxShadow=C.shadow)}>
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-      <div>
-        <Label>{label}</Label>
-        <div style={{ fontSize:24, fontWeight:800, fontFamily:"'Inter',sans-serif", color, lineHeight:1.1, letterSpacing:"-0.01em" }}>{val}</div>
-        {sub && <div style={{ fontSize:12, color:C.mu, marginTop:5 }}>{sub}</div>}
+// KPI card. `icon` is a lucide icon component; `color` tints the icon tile.
+// Values stay near-black for calm readability; only alerts (C.err) turn red.
+export const StatCard = ({ label, val, sub, icon: Icon, color=C.tx, onClick }) => {
+  const tint = color === C.ac ? C.acD : color;
+  return (
+    <div className="stat-card" onClick={onClick} style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:16, padding:"18px 20px", flex:1, minWidth:160, cursor:onClick?"pointer":"default", boxShadow:C.shadow, transition:"border-color 0.2s, box-shadow 0.2s", display:"flex", flexDirection:"column", gap:14 }}
+      onMouseEnter={e=>onClick&&(e.currentTarget.style.borderColor=tint,e.currentTarget.style.boxShadow=C.shadowLg)}
+      onMouseLeave={e=>onClick&&(e.currentTarget.style.borderColor=C.br,e.currentTarget.style.boxShadow=C.shadow)}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ width:38, height:38, borderRadius:11, background:`${tint}14`, color:tint, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          {Icon && <Icon size={19} strokeWidth={2.1} />}
+        </div>
+        {onClick && <ChevronRight size={17} color={C.mu2} />}
       </div>
-      <div style={{ fontSize:22, opacity:0.7 }}>{icon}</div>
+      <div style={{ minWidth:0 }}>
+        <div style={{ fontSize:11, color:C.mu, fontWeight:600, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:5, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{label}</div>
+        <div className="stat-val" style={{ fontSize:26, fontWeight:800, color:color===C.err?C.err:C.tx, lineHeight:1.1, letterSpacing:"-0.02em", whiteSpace:"nowrap", fontVariantNumeric:"tabular-nums" }}>{val}</div>
+        {sub && <div style={{ fontSize:12, color:C.mu, marginTop:5, lineHeight:1.35 }}>{sub}</div>}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const Section = ({ title, sub, children, actions }) => (
   <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:16, padding:22, boxShadow:C.shadow }}>
@@ -113,9 +122,9 @@ export const TagInput = ({ value = [], onChange, suggestions = [], placeholder =
   );
 };
 
-export const EmptyState = ({ icon="📦", title="Nothing here yet", sub="" }) => (
+export const EmptyState = ({ icon: Icon = Package, title="Nothing here yet", sub="" }) => (
   <div style={{ textAlign:"center", padding:"60px 20px", color:C.mu }}>
-    <div style={{ fontSize:48, marginBottom:12 }}>{icon}</div>
+    <div style={{ width:64, height:64, borderRadius:18, background:C.el, color:C.mu, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}><Icon size={30} strokeWidth={1.8} /></div>
     <div style={{ fontSize:16, fontWeight:600, color:C.tx }}>{title}</div>
     {sub && <div style={{ fontSize:13, marginTop:6 }}>{sub}</div>}
   </div>
@@ -171,17 +180,17 @@ export const QRDisplay = ({ code }) => (
 
 // ─── Modal shell ──────────────────────────────────────────────────────────────
 export const Modal = ({ title, sub, onClose, children, footer, wide }) => (
-  <div style={{ position:"fixed", inset:0, background:"rgba(15,17,21,0.4)", backdropFilter:"blur(3px)", WebkitBackdropFilter:"blur(3px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:16 }}>
-    <div className="fade" style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:18, width:"100%", maxWidth:wide?760:560, maxHeight:"92vh", overflow:"auto", display:"flex", flexDirection:"column", boxShadow:C.shadowLg }}>
-      <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
+  <div className="modal-wrap" style={{ position:"fixed", inset:0, background:"rgba(15,17,21,0.4)", backdropFilter:"blur(3px)", WebkitBackdropFilter:"blur(3px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:16 }}>
+    <div className="fade modal-box" style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:18, width:"100%", maxWidth:wide?760:560, maxHeight:"92vh", overflow:"auto", display:"flex", flexDirection:"column", boxShadow:C.shadowLg }}>
+      <div className="modal-head safe-t" style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
         <div>
           <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:18 }}>{title}</div>
           {sub && <div style={{ fontSize:11, color:C.mu, marginTop:2 }}>{sub}</div>}
         </div>
         <button onClick={onClose} style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:24, lineHeight:1, padding:4 }}>×</button>
       </div>
-      <div style={{ padding:24, flex:1, overflow:"auto" }}>{children}</div>
-      {footer && <div style={{ padding:"16px 24px", borderTop:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", flexShrink:0 }}>{footer}</div>}
+      <div className="modal-body" style={{ padding:24, flex:1, overflow:"auto" }}>{children}</div>
+      {footer && <div className="modal-foot" style={{ padding:"16px 24px", borderTop:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", gap:8, flexShrink:0 }}>{footer}</div>}
     </div>
   </div>
 );

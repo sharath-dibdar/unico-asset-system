@@ -1,4 +1,4 @@
-﻿import { StoredImg } from "../lib/files.jsx";
+﻿import { StoredImg, docSizeKB } from "../lib/files.jsx";
 import { useState, useRef } from "react";
 import { C, CATS, SPEC_DEF, PAYMENT_MODES } from "../constants.js";
 import { calcDep, compressImage, fINR } from "../utils.js";
@@ -23,23 +23,34 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
     setForm(p=>({...p, photos:[...(p.photos||[]), ...compressed]}));
   }
 
+  // Images (photographed invoices, warranty cards) are re-encoded to a
+  // ≤1800px JPEG — text stays readable, size drops to a few hundred KB.
+  // PDFs can't be safely shrunk in the browser, so they're capped instead.
+  const MAX_PDF_MB = 2;
   async function addDocument(file) {
-    if (file.size > 3*1024*1024) { alert("File too large (max 3MB)"); return; }
+    const uploadedAt = new Date().toISOString();
+    const addDoc = doc => setForm(p=>({...p, documents:[...(p.documents||[]), doc]}));
+    if (file.type.startsWith("image/")) {
+      const data = await compressImage(file, 1800, 0.8);
+      addDoc({ name:file.name.replace(/\.[^.]+$/, "") + ".jpg", type:"image/jpeg", data, uploadedAt });
+      return;
+    }
+    if (file.size > MAX_PDF_MB*1024*1024) {
+      alert(`"${file.name}" is ${(file.size/1048576).toFixed(1)} MB. PDFs must be under ${MAX_PDF_MB} MB.\n\nTip: re-export it at a lower quality, or attach a photo of the page instead — photos are compressed automatically.`);
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = e => {
-      const doc = { name:file.name, type:file.type, data:e.target.result, uploadedAt:new Date().toISOString() };
-      setForm(p=>({...p, documents:[...(p.documents||[]), doc]}));
-    };
+    reader.onload = e => addDoc({ name:file.name, type:file.type, data:e.target.result, uploadedAt });
     reader.readAsDataURL(file);
   }
 
   const stepLabels = ["Basic Info", "Procurement & Docs", "Insurance & AMC", specDefs.length>0?"Technical Specs":null].filter(Boolean);
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:16 }}>
-      <div style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:16, width:"100%", maxWidth:580, maxHeight:"92vh", overflow:"auto", display:"flex", flexDirection:"column" }}>
+    <div className="modal-wrap" style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:16 }}>
+      <div className="modal-box" style={{ background:C.sf, border:`1px solid ${C.br}`, borderRadius:16, width:"100%", maxWidth:580, maxHeight:"92vh", overflow:"auto", display:"flex", flexDirection:"column" }}>
         {/* Header */}
-        <div style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
+        <div className="modal-head safe-t" style={{ padding:"20px 24px 16px", borderBottom:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
           <div>
             <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:18 }}>{isEdit?"Edit Asset":"New Asset"}</div>
             <div style={{ fontSize:11, color:C.mu, marginTop:2 }}>Step {step} of {steps} — {stepLabels[step-1]}</div>
@@ -52,7 +63,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
         </div>
 
         {/* Body */}
-        <div style={{ padding:24, flex:1, overflow:"auto" }}>
+        <div className="modal-body" style={{ padding:24, flex:1, overflow:"auto" }}>
 
           {/* STEP 1: Basic Info */}
           {step===1 && (
@@ -169,11 +180,12 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
 
               {/* Document attachments */}
               <div>
-                <Label>Documents ({(form.documents||[]).length}) — invoices, warranty cards (max 3MB each)</Label>
+                <Label>Documents ({(form.documents||[]).length}) — invoices, warranty cards · photos auto-compressed · PDFs up to {MAX_PDF_MB} MB</Label>
                 {(form.documents||[]).map((doc,i)=>(
                   <div key={i} style={{ display:"flex", gap:10, alignItems:"center", padding:"8px 12px", background:C.el, borderRadius:8, marginBottom:6 }}>
                     <span style={{ fontSize:16 }}>{doc.type?.includes("pdf")?"📄":"🖼"}</span>
                     <span style={{ flex:1, fontSize:13, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{doc.name}</span>
+                    <span style={{ fontSize:11, color:C.mu, flexShrink:0 }}>{docSizeKB(doc)} KB</span>
                     <button onClick={()=>setForm(p=>({...p,documents:p.documents.filter((_,j)=>j!==i)}))} style={{ background:"none", border:"none", color:C.err, cursor:"pointer", fontSize:16 }}>×</button>
                   </div>
                 ))}
@@ -182,7 +194,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
                     + Attach Document
                   </button>
                 )}
-                <input ref={docRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>e.target.files[0]&&addDocument(e.target.files[0])} />
+                <input ref={docRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" style={{ display:"none" }} onChange={e=>{ const fl=e.target.files[0]; e.target.value=""; if(fl) addDocument(fl); }} />
               </div>
             </div>
           )}
@@ -236,7 +248,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
         </div>
 
         {/* Footer */}
-        <div style={{ padding:"16px 24px", borderTop:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", flexShrink:0 }}>
+        <div className="modal-foot" style={{ padding:"16px 24px", borderTop:`1px solid ${C.br}`, display:"flex", justifyContent:"space-between", flexShrink:0 }}>
           <div style={{ display:"flex", gap:8 }}>
             <Btn onClick={step>1?()=>setStep(s=>s-1):onClose} variant="secondary">{step>1?"← Back":"Cancel"}</Btn>
             {isEdit && onDuplicate && <Btn onClick={()=>{ onDuplicate(); setStep(1); }} variant="secondary" style={{ color:C.ac2 }}>⧉ Duplicate</Btn>}

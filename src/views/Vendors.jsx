@@ -1,3 +1,4 @@
+import { Store } from "lucide-react";
 import { useState } from "react";
 import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS } from "../constants.js";
@@ -13,7 +14,7 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
 
   if (vendors.length === 0) return (
     <div className="fade">
-      <EmptyState icon="🏪" title="No vendors yet" sub="Add vendors to link them to your assets and track supplier contacts." />
+      <EmptyState icon={Store} title="No vendors yet" sub="Add vendors to link them to your assets and track supplier contacts." />
       <div style={{ textAlign:"center", marginTop:16 }}><Btn onClick={onAdd} variant="primary">+ Add First Vendor</Btn></div>
     </div>
   );

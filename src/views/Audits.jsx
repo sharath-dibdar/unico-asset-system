@@ -1,4 +1,5 @@
-﻿import { CatIcon } from "../components/Icons.jsx";
+﻿import { ClipboardCheck } from "lucide-react";
+import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS } from "../constants.js";
 import { fDate } from "../utils.js";
 import { Btn, Badge, EmptyState, Label } from "../components/UI.jsx";
@@ -111,7 +112,7 @@ export default function Audits({ audits, assets, setView, onCreateAudit, onStart
 
   if (audits.length===0) return (
     <div className="fade">
-      <EmptyState icon="📋" title="No audits yet" sub="Schedule a physical audit to verify your inventory room-by-room." />
+      <EmptyState icon={ClipboardCheck} title="No audits yet" sub="Schedule a physical audit to verify your inventory room-by-room." />
       <div style={{ textAlign:"center", marginTop:16 }}><Btn onClick={onCreateAudit} variant="primary">+ Schedule Audit</Btn></div>
     </div>
   );
