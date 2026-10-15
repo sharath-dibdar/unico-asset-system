@@ -13,7 +13,7 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
         </div>
         <select value={catF} onChange={e=>setCatF(e.target.value)} style={{ width:"auto", minWidth:170 }}>
           <option value="all">All Categories</option>
-          {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+          {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
         </select>
         <select value={stF} onChange={e=>setStF(e.target.value)} style={{ width:"auto", minWidth:140 }}>
           <option value="all">All Status</option>
@@ -42,7 +42,7 @@ export default function AssetList({ filtered, q, setQ, catF, setCatF, stF, setSt
               {/* thumbnail or emoji */}
               {a.photos?.[0]
                 ? <img src={a.photos[0]} alt="" style={{ width:42, height:42, borderRadius:10, objectFit:"cover", flexShrink:0 }} />
-                : <div style={{ width:42, height:42, background:C.el, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:19, flexShrink:0 }}>{CATS[a.cat]?.emoji}</div>
+                : <div style={{ width:42, height:42, background:C.el, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:19, flexShrink:0 }}><CatIcon cat={a.cat} /></div>
               }
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>

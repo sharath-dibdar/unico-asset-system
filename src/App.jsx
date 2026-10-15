@@ -43,6 +43,34 @@ function GlobalStyles() {
       .fade{animation:fadeUp 0.22s ease;}
       @media(max-width:768px){.dsk{display:none!important;}}
       @media(min-width:769px){.mob{display:none!important;}}
+
+      /* ─── Mobile layout ─────────────────────────────────────────────── */
+      body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;}
+      .app-shell{height:100vh;height:100dvh;}          /* dvh = visible area, excludes the phone's browser bars */
+      .content{padding:20px 22px;}
+      .topbar{padding:14px 22px;}
+      .safe-b{padding-bottom:env(safe-area-inset-bottom);}
+      .safe-t{padding-top:env(safe-area-inset-top);}
+      .h-scroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+      .h-scroll::-webkit-scrollbar{display:none;}
+      .h-scroll > *{flex:0 0 auto;}
+      @media(max-width:768px){
+        input,select,textarea{font-size:16px;}             /* below 16px iOS zooms the page on focus */
+        .content{padding:14px 14px 28px;}
+        .topbar{padding:10px 14px;min-height:60px;}
+        .stat-row{display:grid!important;grid-template-columns:1fr 1fr;gap:10px!important;}
+        .stat-row > *{min-width:0!important;padding:14px!important;}
+        .filters{flex-wrap:nowrap!important;width:100%;overflow-x:auto;scrollbar-width:none;}
+        .filters::-webkit-scrollbar{display:none;}
+        .filters > *{flex:0 0 auto;width:auto!important;}
+        .detail-cols{flex-direction:column;}
+        .detail-side{width:100%!important;order:2;}
+        .detail-main{order:1;min-width:0!important;}
+        .detail-actions{justify-content:flex-start!important;}
+        .modal-wrap{padding:0!important;align-items:stretch!important;}
+        .modal-box{max-width:none!important;max-height:none!important;height:100%;border-radius:0!important;border:none!important;}
+        .modal-foot{padding-bottom:calc(14px + env(safe-area-inset-bottom))!important;}
+      }
     `}</style>
   );
 }
@@ -413,7 +441,7 @@ function AppInner() {
 
   // ─── Loading / auth gates ─────────────────────────────────────────────────
   if (!loaded || !authLoaded) return (
-    <div style={{ display:"flex", height:"100vh", alignItems:"center", justifyContent:"center", background:"transparent", color:C.mu, fontFamily:"'Inter',sans-serif" }}>
+    <div className="app-shell" style={{ display:"flex", alignItems:"center", justifyContent:"center", background:"transparent", color:C.mu, fontFamily:"'Inter',sans-serif" }}>
       <div style={{ textAlign:"center" }}>
         <img src="/logo.svg" alt="Unico" style={{ width:56, height:56, borderRadius:14, marginBottom:16, opacity:0.85 }} />
         <div style={{ fontSize:13 }}>Loading…</div>
@@ -428,7 +456,7 @@ function AppInner() {
     : null;
 
   return (
-    <div style={{ display:"flex", height:"100vh", background:"transparent", fontFamily:"'Inter',sans-serif", color:C.tx, overflow:"hidden" }}>
+    <div className="app-shell" style={{ display:"flex", background:"transparent", fontFamily:"'Inter',sans-serif", color:C.tx, overflow:"hidden" }}>
       <Sidebar view={view} setView={setView} assets={assets} vendors={vendors} audits={audits}
         onAdd={() => openAdd()} onImport={() => setModal({type:"bulkImport"})}
         onExport={() => setView("reports")} onPrintLabels={() => setModal({type:"printLabels"})}
@@ -447,10 +475,10 @@ function AppInner() {
           </div>
         )}
 
-        <div style={{ flex:1, overflowY:"auto", padding:"20px 22px" }}>
+        <div className="content" style={{ flex:1, overflowY:"auto" }}>
           {view==="dashboard"  && <Dashboard assets={assets} vendors={vendors} audits={audits} checkouts={checkouts} openDetail={openDetail} totalV={totalV} totalBV={totalBV} setView={setView} isAdmin={isAdmin} />}
           {view==="list"       && <AssetList filtered={filtered} q={q} setQ={setQ} catF={catF} setCatF={setCatF} stF={stF} setStF={setStF} tagF={tagF} setTagF={setTagF} allTags={allTags} openDetail={openDetail} isAdmin={isAdmin} />}
-          {view==="detail" && sel && <AssetDetail asset={sel} isAdmin={isAdmin} onEdit={isAdmin?()=>openAdd(sel):null} onDelete={isAdmin?deleteAsset:null} onCheckout={a=>setModal({type:"checkout",data:{asset:a}})} onDispose={isAdmin?a=>setModal({type:"disposal",data:a}):null} onUpdate={updateAsset} />}
+          {view==="detail" && sel && <AssetDetail asset={sel} isAdmin={isAdmin} onEdit={isAdmin?()=>openAdd(sel):null} onDelete={isAdmin?deleteAsset:null} onCheckout={a=>setModal({type:"checkout",data:{asset:a}})} onDispose={isAdmin?a=>setModal({type:"disposal",data:a}):null} onUpdate={updateAsset} onPrintLabel={isAdmin?a=>setModal({type:"printLabels",data:{ids:[a.id]}}):null} />}
           {view==="vendors"    && isAdmin && <Vendors vendors={vendors} assets={assets} onAdd={()=>setModal({type:"vendor"})} onEdit={v=>setModal({type:"vendor",data:v})} onDelete={deleteVendor} />}
           {view==="audits"     && <Audits audits={audits} assets={assets} setView={setView} onCreateAudit={isAdmin?()=>setModal({type:"createAudit"}):null} onStartAudit={startAudit} onRunAudit={a=>setModal({type:"runAudit",data:a})} onDeleteAudit={isAdmin?deleteAudit:null} onUpdateAudit={a=>{ const u={...a}; setAudits(p=>p.map(x=>x.id===a.id?u:x)); db.audits.upsert(u); }} />}
           {view==="reports"    && isAdmin && <Reports assets={assets} checkouts={checkouts} vendors={vendors} />}
@@ -459,7 +487,8 @@ function AppInner() {
           {view==="useradmin"  && isAdmin && <UserAdmin />}
         </div>
 
-        <BottomNav view={view} setView={setView} onAdd={() => openAdd()} onScan={() => setModal({type:"scan"})} />
+        <BottomNav view={view} setView={setView} assets={assets} audits={audits} onScan={() => setModal({type:"scan"})}
+          onImport={() => setModal({type:"bulkImport"})} onPrintLabels={() => setModal({type:"printLabels"})} />
       </div>
 
       {/* ─── Modals ────────────────────────────────────────────────────── */}
@@ -471,7 +500,7 @@ function AppInner() {
       {modal?.type==="vendor"      && <VendorModal vendor={modal.data} onSave={saveVendor} onClose={closeModal} />}
       {modal?.type==="createAudit" && <CreateAuditModal assets={assets} onSave={saveAudit} onClose={closeModal} />}
       {modal?.type==="runAudit"    && liveAudit && <AuditRunModal audit={liveAudit} assets={assets} onComplete={checks=>completeAudit(liveAudit.id,checks)} onClose={closeModal} />}
-      {modal?.type==="printLabels" && <PrintLabelsModal assets={assets} workstations={workstations} onClose={closeModal} />}
+      {modal?.type==="printLabels" && <PrintLabelsModal assets={assets} workstations={workstations} preselectIds={modal.data?.ids || []} onClose={closeModal} />}
       {modal?.type==="workstation"         && <WorkstationModal workstation={modal.data} assets={assets} onSave={saveWorkstation} onClose={closeModal} />}
       {modal?.type==="workstationCheckout" && <WorkstationCheckoutModal workstation={modal.data} assets={assets} onCheckout={formData=>doWorkstationCheckout(modal.data,formData)} onClose={closeModal} />}
       {modal?.type==="workstationReturn"   && <WorkstationReturnModal workstation={modal.data} assets={assets} onReturn={returnData=>doWorkstationReturn(modal.data,returnData)} onClose={closeModal} />}

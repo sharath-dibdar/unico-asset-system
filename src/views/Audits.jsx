@@ -77,7 +77,7 @@ function AuditDetail({ audit, assets, onStart, onRun, onDelete, onBack }) {
                   <tr key={item.assetId} style={{ borderBottom:`1px solid ${C.br}` }}>
                     <td style={{ padding:"10px 12px" }}>
                       <div style={{ fontWeight:600 }}>{item.assetName||asset?.name||"—"}</div>
-                      {CATS[asset?.cat] && <div style={{ fontSize:11, color:C.mu }}>{CATS[asset.cat].emoji} {CATS[asset.cat].label}</div>}
+                      {CATS[asset?.cat] && <div style={{ fontSize:11, color:C.mu }}><CatIcon cat={asset.cat} size={12} /> {CATS[asset.cat].label}</div>}
                     </td>
                     <td style={{ padding:"10px 12px", fontFamily:"'Noto Sans Mono',monospace", fontSize:11, color:C.mu }}>{item.assetCode||asset?.code||"—"}</td>
                     <td style={{ padding:"10px 12px", color:C.mu, fontSize:12 }}>{item.loc||asset?.loc||"—"}</td>

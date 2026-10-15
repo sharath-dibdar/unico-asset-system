@@ -22,7 +22,7 @@ export function CheckoutModal({ assets, preselectedAsset, onCheckout, onClose })
             <select value={form.assetId} onChange={e=>set("assetId",e.target.value)}>
               <option value="">Choose an asset…</option>
               {assets.filter(a=>a.status!=="retired"&&!a.disposal).map(a=>(
-                <option key={a.id} value={a.id}>{CATS[a.cat]?.emoji} {a.name} — {a.code}</option>
+                <option key={a.id} value={a.id}>{a.name} — {a.code}</option>
               ))}
             </select>
           </div>
@@ -30,7 +30,7 @@ export function CheckoutModal({ assets, preselectedAsset, onCheckout, onClose })
 
         {sel && (
           <div style={{ background:C.el, borderRadius:10, padding:12, display:"flex", gap:12, alignItems:"center" }}>
-            <div style={{ fontSize:24 }}>{CATS[sel.cat]?.emoji}</div>
+            <div style={{ fontSize:24 }}><CatIcon cat={sel.cat} /></div>
             <div>
               <div style={{ fontSize:14, fontWeight:600 }}>{sel.name}</div>
               <div style={{ fontSize:12, color:C.mu }}>{sel.code} · {sel.loc}</div>
@@ -67,7 +67,7 @@ export function ReturnModal({ checkout, assets, onReturn, onClose }) {
       <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
         {asset && (
           <div style={{ background:C.el, borderRadius:10, padding:12, display:"flex", gap:12, alignItems:"center" }}>
-            <div style={{ fontSize:24 }}>{CATS[asset.cat]?.emoji}</div>
+            <div style={{ fontSize:24 }}><CatIcon cat={asset.cat} /></div>
             <div>
               <div style={{ fontSize:14, fontWeight:600 }}>{asset.name}</div>
               <div style={{ fontSize:12, color:C.mu }}>Was with: {checkout.assignedTo} · Out since {checkout.checkoutDate}</div>

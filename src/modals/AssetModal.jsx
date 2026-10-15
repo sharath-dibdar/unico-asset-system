@@ -60,7 +60,7 @@ export default function AssetModal({ form, setForm, onSave, onClose, isEdit, ven
               <div><Label>Category *</Label>
                 <select value={form.cat||""} onChange={e=>set("cat",e.target.value)}>
                   <option value="">Select category…</option>
-                  {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+                  {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
                 </select>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>

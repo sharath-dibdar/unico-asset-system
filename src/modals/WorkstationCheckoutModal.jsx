@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS, CHECKOUT_PURPOSES } from "../constants.js";
 import { Label, Btn, Modal, AssigneeSelect } from "../components/UI.jsx";
 
@@ -14,7 +15,7 @@ export function WorkstationCheckoutModal({ workstation, assets, onCheckout, onCl
       <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
         <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
           {bundled.map(a => (
-            <span key={a.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"4px 10px", borderRadius:8 }}>{CATS[a.cat]?.emoji} {a.name}</span>
+            <span key={a.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"4px 10px", borderRadius:8 }}><CatIcon cat={a.cat} /> {a.name}</span>
           ))}
         </div>
 
@@ -49,7 +50,7 @@ export function WorkstationReturnModal({ workstation, assets, onReturn, onClose 
           <div style={{ fontSize:13, fontWeight:600, marginBottom:6 }}>Was with: {workstation.assignTo}</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
             {bundled.map(a => (
-              <span key={a.id} style={{ fontSize:11, background:C.sf, color:C.mu, padding:"4px 10px", borderRadius:8 }}>{CATS[a.cat]?.emoji} {a.name}</span>
+              <span key={a.id} style={{ fontSize:11, background:C.sf, color:C.mu, padding:"4px 10px", borderRadius:8 }}><CatIcon cat={a.cat} /> {a.name}</span>
             ))}
           </div>
         </div>

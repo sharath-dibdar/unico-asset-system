@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CatIcon } from "../components/Icons.jsx";
 import jsQR from "jsqr";
 import { C, CATS, CHECKOUT_PURPOSES } from "../constants.js";
 import { Btn, Modal, Label, AssigneeSelect } from "../components/UI.jsx";
@@ -156,7 +157,7 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                   {toCheckOut.map(a => (
                     <span key={a.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"4px 10px", borderRadius:8, display:"flex", alignItems:"center", gap:6 }}>
-                      {CATS[a.cat]?.emoji} {a.name}
+                      <CatIcon cat={a.cat} /> {a.name}
                       <button onClick={() => removeFromCart(a.id)} style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:12, padding:0, lineHeight:1 }}>×</button>
                     </span>
                   ))}
@@ -193,7 +194,7 @@ export default function ScanModal({ assets, checkouts, onBulkCheckout, onBulkRet
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                   {toCheckIn.map(({ asset:a }) => (
                     <span key={a.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"4px 10px", borderRadius:8, display:"flex", alignItems:"center", gap:6 }}>
-                      {CATS[a.cat]?.emoji} {a.name}
+                      <CatIcon cat={a.cat} /> {a.name}
                       <button onClick={() => removeFromCart(a.id)} style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:12, padding:0, lineHeight:1 }}>×</button>
                     </span>
                   ))}

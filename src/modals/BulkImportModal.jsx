@@ -105,7 +105,7 @@ export default function BulkImportModal({ assets, onImport, onClose }) {
                     {valid.map((r,i)=>(
                       <tr key={i} style={{ borderBottom:`1px solid ${C.br}` }}>
                         <td style={{ padding:"8px 10px", fontWeight:600 }}>{r.name}</td>
-                        <td style={{ padding:"8px 10px" }}>{CATS[r.cat]?.emoji} {CATS[r.cat]?.label||r.cat}</td>
+                        <td style={{ padding:"8px 10px" }}><CatIcon cat={r.cat} /> {CATS[r.cat]?.label||r.cat}</td>
                         <td style={{ padding:"8px 10px", color:C.mu }}>{r.make}</td>
                         <td style={{ padding:"8px 10px", color:C.mu, fontFamily:"'Noto Sans Mono',monospace" }}>{r.pDate}</td>
                         <td style={{ padding:"8px 10px", color:C.ac2 }}>₹{Number(r.price||0).toLocaleString("en-IN")}</td>

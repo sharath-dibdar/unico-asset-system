@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS } from "../constants.js";
 import { Label, Btn, Modal } from "../components/UI.jsx";
 
@@ -58,7 +59,7 @@ export default function WorkstationModal({ workstation, assets, onSave, onClose 
                   <div style={{ width:18, height:18, borderRadius:5, border:`2px solid ${checked?C.acD:C.mu}`, background:checked?C.ac:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                     {checked && <span style={{ color:C.acTx, fontSize:11, lineHeight:1, fontWeight:800 }}>✓</span>}
                   </div>
-                  <span style={{ fontSize:15, flexShrink:0 }}>{CATS[a.cat]?.emoji}</span>
+                  <span style={{ fontSize:15, flexShrink:0 }}><CatIcon cat={a.cat} /></span>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, fontWeight:600 }}>{a.name}</div>
                     <div style={{ fontSize:11, color:C.mu, fontFamily:"'Noto Sans Mono',monospace" }}>{a.code}</div>

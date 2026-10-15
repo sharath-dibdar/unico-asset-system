@@ -2,6 +2,7 @@
 import { C, CATS, ST_CFG } from "../constants.js";
 import { fINR, dTo, calcDep } from "../utils.js";
 import { StatCard, Badge, Label } from "../components/UI.jsx";
+import { CatIcon } from "../components/Icons.jsx";
 
 export default function Dashboard({ assets, vendors, audits, checkouts, openDetail, totalV, totalBV, setView, isAdmin }) {
   const warnings    = assets.filter(a=>{ const d=dTo(a.wEnd); return d!==null&&d<=90; }).sort((a,b)=>dTo(a.wEnd)-dTo(b.wEnd));
@@ -106,7 +107,7 @@ export default function Dashboard({ assets, vendors, audits, checkouts, openDeta
               onMouseEnter={e=>e.currentTarget.style.opacity="0.75"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
               {a.photos?.[0]
                 ? <img src={a.photos[0]} alt="" style={{ width:36, height:36, borderRadius:9, objectFit:"cover", flexShrink:0 }} />
-                : <div style={{ width:36, height:36, background:C.el, borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}>{CATS[a.cat]?.emoji}</div>
+                : <div style={{ width:36, height:36, background:C.el, borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, flexShrink:0 }}><CatIcon cat={a.cat} /></div>
               }
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:13, fontWeight:600, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{a.name}</div>
@@ -142,7 +143,7 @@ export default function Dashboard({ assets, vendors, audits, checkouts, openDeta
               const val=assets.filter(a=>a.cat===k).reduce((s,a)=>s+(a.price||0),0);
               if (!n) return null;
               return <div key={k} style={{ display:"flex", justifyContent:"space-between" }}>
-                <div style={{ fontSize:12, color:C.mu }}>{v.emoji}  {v.label}</div>
+                <div style={{ fontSize:12, color:C.mu, display:"inline-flex", alignItems:"center", gap:6 }}><CatIcon cat={k} size={14} />{v.label}</div>
                 <div style={{ fontSize:12, fontWeight:600 }}>{n}{isAdmin ? ` · ` : ""}{isAdmin ? <span style={{ color:C.mu }}>{fINR(val)}</span> : ""}</div>
               </div>;
             })}
@@ -185,7 +186,7 @@ export default function Dashboard({ assets, vendors, audits, checkouts, openDeta
             {assets.filter(a=>a.status==="in_use").slice(0,4).map(a=>(
               <div key={a.id} onClick={()=>openDetail(a)} style={{ display:"flex", gap:12, alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${C.br}`, cursor:"pointer" }}
                 onMouseEnter={e=>e.currentTarget.style.opacity="0.75"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                <div style={{ width:32, height:32, background:C.el, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{CATS[a.cat]?.emoji}</div>
+                <div style={{ width:32, height:32, background:C.el, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}><CatIcon cat={a.cat} /></div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</div>
                   <div style={{ fontSize:11, color:C.mu }}>{a.assignTo||"—"} · {a.loc||"—"}</div>

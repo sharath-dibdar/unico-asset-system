@@ -1,118 +1,97 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS } from "../constants.js";
 import { Btn, Modal } from "../components/UI.jsx";
 import { exportWePrintLabels } from "../utils.js";
+import { detectHelper, getPrinters, renderLabel, printImage, loadPrintSettings, savePrintSettings } from "../lib/labelPrinter.js";
 
-// On-screen preview of one thermal label at the chosen rotation.
-// Mirrors the print markup: 50×25mm scaled up (4px/mm) for legibility.
-function ThermalPreview({ asset, rotation, wsName }) {
-  const PX = 4; // px per mm
-  if (!asset) return <div style={{ fontSize: 12, color: C.mu2 }}>Select at least one asset to preview.</div>;
-  const portrait = rotation === 90 || rotation === 270;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(asset.code)}&bgcolor=ffffff&color=000000&margin=2`;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <div style={{ position: "relative", overflow: "hidden", width: 50 * PX, height: 25 * PX, background: "#fff", border: `1px solid ${C.br}`, borderRadius: 4, boxShadow: "0 1px 4px rgba(0,0,0,0.25)" }}>
-        <div style={{
-          position: "absolute", top: "50%", left: "50%",
-          width: (portrait ? 25 : 50) * PX, height: (portrait ? 50 : 25) * PX,
-          display: "flex", flexDirection: portrait ? "column" : "row",
-          alignItems: "center", justifyContent: "center", gap: 2 * PX, padding: 1.5 * PX,
-          transform: `translate(-50%,-50%) rotate(${rotation}deg)`,
-        }}>
-          <img src={qrUrl} alt={asset.code} style={{ width: 19 * PX, height: 19 * PX, flexShrink: 0, display: "block" }} />
-          <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 1, justifyContent: "center", overflow: "hidden", color: "#000" }}>
-            <div style={{ fontSize: 8, fontWeight: 700, lineHeight: 1.2, wordBreak: "break-word" }}>{asset.name.slice(0, 45)}</div>
-            <div style={{ fontSize: 7.5, fontFamily: "monospace", color: "#444" }}>{asset.code}</div>
-            {wsName && <div style={{ fontSize: 6.5, color: "#666", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>🖥 {wsName.slice(0, 28)}</div>}
-          </div>
-        </div>
-      </div>
-      <div style={{ fontSize: 10, color: C.mu2 }}>Preview · 50 × 25 mm · {rotation}°</div>
-    </div>
-  );
-}
+const MODES = [
+  ["direct",  "🖨 Label Printer", "Print directly · DP27"],
+  ["weprint", "🏷️ WePrint",       "Export Excel"],
+  ["a4",      "📄 A4 Sheet",      "Regular printer"],
+];
 
-export default function PrintLabelsModal({ assets, workstations = [], onClose }) {
-  const [selected,  setSelected]  = useState(new Set(assets.map(a => a.id)));
-  const [mode,      setMode]      = useState("weprint"); // "weprint" | "thermal" | "a4"
-  const [a4Cols,    setA4Cols]    = useState(4);
-  const [rotation,  setRotation]  = useState(90); // 0 | 90 | 180 | 270
+export default function PrintLabelsModal({ assets, workstations = [], preselectIds = [], onClose }) {
+  const [selected, setSelected] = useState(() => new Set(preselectIds));
+  const [mode,     setMode]     = useState("direct");
+  const [a4Cols,   setA4Cols]   = useState(4);
+  const [search,   setSearch]   = useState("");
+
+  // Direct-print state
+  const saved = loadPrintSettings();
+  const [helper,   setHelper]   = useState(null);      // { base, version } | null
+  const [hState,   setHState]   = useState("idle");    // idle | checking | ready | missing
+  const [printers, setPrinters] = useState([]);
+  const [printer,  setPrinter]  = useState(saved.printer || "");
+  const [rotation, setRotation] = useState(saved.rotation ?? 0);
+  const [preview,  setPreview]  = useState("");
+  const [progress, setProgress] = useState(null);      // { done, total, failed } | null
 
   const toggle    = id => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const selAssets = assets.filter(a => selected.has(a.id));
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return assets;
+    return assets.filter(a => [a.name, a.code, a.make, a.model, a.serial, ...(a.tags || [])].some(f => f?.toLowerCase().includes(q)));
+  }, [assets, search]);
 
   function getWorkstationName(assetId) {
     const ws = workstations.find(w => w.assetIds?.includes(assetId));
     return ws ? ws.name : null;
   }
+  const labelData = a => ({ name: a.name, code: a.code, workstation: getWorkstationName(a.id) || "" });
 
-  // Inner content of a single label. `angle` rotates the content so it can be
-  // matched to however the thermal printer feeds the media.
-  function buildLabelHtml(a, angle = 0) {
-    const wsName   = getWorkstationName(a.id);
-    const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(a.code)}&bgcolor=ffffff&color=000000&margin=2`;
-    const portrait = angle === 90 || angle === 270;      // rotated onto the short edge
-    const boxW     = portrait ? 25 : 50;
-    const boxH     = portrait ? 50 : 25;
-    const flexDir  = portrait ? "column" : "row";
-    return `<div class="label">
-  <div class="rot" style="width:${boxW}mm;height:${boxH}mm;flex-direction:${flexDir};transform:translate(-50%,-50%) rotate(${angle}deg);">
-    <img class="qr" src="${qrUrl}" alt="${a.code}" />
-    <div class="info">
-      <div class="name">${a.name.slice(0, 45)}</div>
-      <div class="code">${a.code}</div>
-      ${wsName ? `<div class="ws">🖥 ${wsName.slice(0, 28)}</div>` : ""}
-    </div>
-  </div>
-</div>`;
+  // ─── Direct print ──────────────────────────────────────────────────────────
+  async function connect() {
+    setHState("checking");
+    const h = await detectHelper();
+    if (!h) { setHelper(null); setHState("missing"); return; }
+    setHelper(h);
+    try {
+      const list = await getPrinters(h.base);
+      setPrinters(list);
+      if (!list.includes(printer)) setPrinter(list.find(n => /dp27|label/i.test(n)) || list[0] || "");
+      setHState("ready");
+    } catch {
+      setHState("missing");
+    }
   }
 
-  function printThermal() {
-    const win = window.open("", "_blank", "width=700,height=500");
-    if (!win) { alert("Allow popups to print labels"); return; }
-    // One label per page = one physical 50×25mm label. Requires the driver's
-    // paper size to be set to 50×25mm (gap type); see the in-app instructions.
-    const html = `<!DOCTYPE html>
-<html><head><title>QR Labels — UNICO</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  @page{size:50mm 25mm;margin:0;}
-  html,body{width:50mm;background:#fff;font-family:Arial,Helvetica,sans-serif;}
-  .label{
-    position:relative;overflow:hidden;
-    width:50mm;height:25mm;
-    page-break-after:always;break-after:page;
-  }
-  .label:last-child{page-break-after:avoid;break-after:avoid;}
-  .rot{
-    position:absolute;top:50%;left:50%;
-    display:flex;align-items:center;justify-content:center;gap:2mm;
-    padding:1.5mm;
-  }
-  .qr{width:19mm;height:19mm;flex-shrink:0;display:block;}
-  .info{min-width:0;display:flex;flex-direction:column;gap:0.8mm;justify-content:center;overflow:hidden;}
-  .name{font-size:6.5pt;font-weight:700;line-height:1.25;word-break:break-word;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-  .code{font-size:6pt;font-family:'Courier New',monospace;color:#444;letter-spacing:0.02em;}
-  .ws{font-size:5.5pt;color:#666;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-  .no-print{position:fixed;top:0;left:0;right:0;background:#1e1e2e;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;z-index:999;font-family:system-ui;}
-  @media print{.no-print{display:none!important;}}
-</style></head>
-<body>
-<div class="no-print">
-  <strong>🖨 UNICO — Thermal Labels</strong>
-  <span style="font-size:12px;opacity:0.7;">${selAssets.length} label${selAssets.length !== 1 ? "s" : ""} · 50×25mm · rotation ${rotation}°</span>
-  <button onclick="window.print()" style="margin-left:auto;padding:7px 18px;background:#ffd200;color:#0C0E17;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px;">Print</button>
-  <span style="font-size:11px;opacity:0.6;">Paper: A 50×300mm &nbsp;·&nbsp; Margins: None &nbsp;·&nbsp; Scale: 100%</span>
-  <button onclick="window.close()" style="padding:7px 14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">✕</button>
-</div>
-${selAssets.map(a => buildLabelHtml(a, rotation)).join("\n")}
-</body></html>`;
-    win.document.write(html);
-    win.document.close();
+  useEffect(() => { if (mode === "direct" && hState === "idle") connect(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { savePrintSettings({ printer, rotation }); }, [printer, rotation]);
+
+  // Live preview = the exact image that will be sent to the printer.
+  const first = selAssets[0];
+  useEffect(() => {
+    let cancelled = false;
+    if (mode !== "direct" || !first) { setPreview(""); return; }
+    renderLabel(labelData(first), rotation).then(url => { if (!cancelled) setPreview(url); });
+    return () => { cancelled = true; };
+  }, [mode, first?.id, rotation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function printDirect() {
+    if (!helper || !printer || selAssets.length === 0) return;
+    if (selAssets.length > 10 && !confirm(`Print ${selAssets.length} labels on ${printer}?`)) return;
+    const total = selAssets.length;
+    let failed = 0;
+    setProgress({ done: 0, total, failed: 0 });
+    for (let i = 0; i < total; i++) {
+      try {
+        const png = await renderLabel(labelData(selAssets[i]), rotation);
+        const ok = await printImage(helper.base, printer, png);
+        if (!ok) failed++;
+      } catch { failed++; }
+      setProgress({ done: i + 1, total, failed });
+    }
   }
 
-  // Flat (non-rotated) label markup for the A4 grid.
+  // ─── WePrint / A4 ──────────────────────────────────────────────────────────
+  function exportForWePrint() {
+    exportWePrintLabels(selAssets.map(labelData));
+  }
+
   function buildFlatLabelHtml(a) {
     const wsName = getWorkstationName(a.id);
     const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(a.code)}&bgcolor=ffffff&color=000000&margin=2`;
@@ -124,15 +103,6 @@ ${selAssets.map(a => buildLabelHtml(a, rotation)).join("\n")}
     ${wsName ? `<div class="ws">🖥 ${wsName.slice(0, 28)}</div>` : ""}
   </div>
 </div>`;
-  }
-
-  function exportForWePrint() {
-    const rows = selAssets.map(a => ({
-      name: a.name,
-      code: a.code,
-      workstation: getWorkstationName(a.id) || "",
-    }));
-    exportWePrintLabels(rows);
   }
 
   function printA4() {
@@ -174,6 +144,10 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
     win.document.close();
   }
 
+  const none = selAssets.length === 0;
+  const printing = progress && progress.done < progress.total;
+  const pill = (active) => ({ padding: "6px 14px", borderRadius: 8, border: `2px solid ${active ? C.ac : C.br}`, background: active ? `${C.ac}15` : "transparent", color: active ? C.acD : C.mu, cursor: "pointer", fontSize: 12, fontFamily: "'Inter',sans-serif" });
+
   return (
     <Modal
       title="Print QR Labels"
@@ -182,105 +156,118 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
       wide
       footer={
         <>
-          <Btn onClick={onClose} variant="secondary">Cancel</Btn>
-          {mode === "weprint" && <Btn onClick={exportForWePrint} variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>⬇ Export for WePrint (.xlsx)</Btn>}
-          {mode === "thermal" && <Btn onClick={printThermal} variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>🖨 Print Thermal Labels</Btn>}
-          {mode === "a4"      && <Btn onClick={printA4}      variant="primary" style={{ opacity: selAssets.length > 0 ? 1 : 0.5 }} disabled={selAssets.length === 0}>🖨 Open A4 Print Preview</Btn>}
+          <Btn onClick={onClose} variant="secondary">Close</Btn>
+          {mode === "direct"  && <Btn onClick={printDirect} variant="primary" disabled={none || hState !== "ready" || !printer || printing}>{printing ? `Printing ${progress.done}/${progress.total}…` : `🖨 Print ${selAssets.length || ""} label${selAssets.length !== 1 ? "s" : ""}`}</Btn>}
+          {mode === "weprint" && <Btn onClick={exportForWePrint} variant="primary" disabled={none}>⬇ Export (.xlsx)</Btn>}
+          {mode === "a4"      && <Btn onClick={printA4} variant="primary" disabled={none}>🖨 A4 Preview</Btn>}
         </>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* Mode toggle */}
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={() => setMode("weprint")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "weprint" ? C.ac : C.br}`, background: mode === "weprint" ? `${C.ac}15` : C.el, color: mode === "weprint" ?C.acD:C.mu, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "'Inter',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
-          >
-            🏷️ WePrint (DP27)
-            <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>Recommended · bulk from Excel</span>
-          </button>
-          <button
-            onClick={() => setMode("thermal")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "thermal" ? C.ac : C.br}`, background: mode === "thermal" ? `${C.ac}15` : C.el, color: mode === "thermal" ?C.acD:C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "thermal" ? 700 : 400, fontFamily: "'Inter',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
-          >
-            🖨 Browser Print
-            <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>Other thermal printers</span>
-          </button>
-          <button
-            onClick={() => setMode("a4")}
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `2px solid ${mode === "a4" ? C.ac : C.br}`, background: mode === "a4" ? `${C.ac}15` : C.el, color: mode === "a4" ?C.acD:C.mu, cursor: "pointer", fontSize: 13, fontWeight: mode === "a4" ? 700 : 400, fontFamily: "'Inter',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}
-          >
-            📄 A4 Sheet
-            <span style={{ fontSize: 10, opacity: 0.7 }}>Multiple per page</span>
-          </button>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          {MODES.map(([k, label, sub]) => (
+            <button key={k} onClick={() => setMode(k)}
+              style={{ padding: "9px 6px", borderRadius: 10, border: `2px solid ${mode === k ? C.ac : C.br}`, background: mode === k ? `${C.ac}15` : C.el, color: mode === k ? C.acD : C.mu, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "'Inter',sans-serif", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 0 }}>
+              <span style={{ whiteSpace: "nowrap" }}>{label}</span>
+              <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8, textAlign: "center" }}>{sub}</span>
+            </button>
+          ))}
         </div>
 
-        {/* WePrint instructions */}
-        {mode === "weprint" && (
-          <div style={{ background: `${C.ac}0D`, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: "12px 16px", fontSize: 12.5, color: C.mu, lineHeight: 1.7 }}>
-            <div style={{ color: C.tx, fontWeight: 700, marginBottom: 6 }}>How to print on the DP27</div>
-            <div>1. Export the sheet below and open <strong style={{ color: C.tx }}>WePrint</strong> — the app or <span style={{ color: C.ac2 }}>seznik.in/weprint</span>.</div>
-            <div>2. <strong style={{ color: C.tx }}>One-time:</strong> create a label template — size <strong style={{ color: C.tx }}>50 × 25 mm</strong>, page type <strong style={{ color: C.tx }}>Label</strong>, gap <strong style={{ color: C.tx }}>3 mm</strong>. Add a <strong style={{ color: C.tx }}>QRCode</strong> element bound to the <strong style={{ color: C.tx }}>Code</strong> column, and Text elements bound to <strong style={{ color: C.tx }}>Name</strong> / <strong style={{ color: C.tx }}>Code</strong> / <strong style={{ color: C.tx }}>Workstation</strong>. Save it.</div>
-            <div>3. Load this Excel file into that template and <strong style={{ color: C.tx }}>bulk print</strong> — WePrint handles sizing, gap sensing and cutting.</div>
-            <div style={{ marginTop: 6, fontSize: 11.5, color: C.mu2 }}>The file has one row per selected asset with columns: <code>Name</code>, <code>Code</code>, <code>Workstation</code>.</div>
+        {/* Direct print panel */}
+        {mode === "direct" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {hState === "checking" && <div style={{ fontSize: 13, color: C.mu }}>Looking for the label printer on this device…</div>}
+
+            {hState === "missing" && (
+              <div style={{ background: `${C.err}0D`, border: `1px solid ${C.err}30`, borderRadius: 10, padding: "12px 14px", fontSize: 12.5, color: C.mu, lineHeight: 1.6 }}>
+                <div style={{ color: C.tx, fontWeight: 700, marginBottom: 4 }}>Label printer not reachable from this device</div>
+                Direct printing works on the <strong style={{ color: C.tx }}>PC the DP27 is plugged into</strong>, in Chrome or Edge. Make sure the printer's <strong style={{ color: C.tx }}>dtpweb</strong> service is running (it's installed with the driver). If Chrome asked to allow access to <em>apps and devices on this device</em>, choose <strong style={{ color: C.tx }}>Allow</strong>.
+                <div style={{ marginTop: 6 }}>On a phone, use the <strong style={{ color: C.tx }}>WePrint</strong> tab instead.</div>
+                <div style={{ marginTop: 10 }}><Btn onClick={connect} variant="secondary" style={{ fontSize: 12, padding: "6px 14px" }}>↻ Retry</Btn></div>
+              </div>
+            )}
+
+            {hState === "ready" && (
+              <>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: C.ok, fontWeight: 700 }}>● Connected</span>
+                  <select value={printer} onChange={e => setPrinter(e.target.value)} style={{ width: "auto", minWidth: 180, flex: 1 }}>
+                    {printers.length === 0 && <option value="">No printers found</option>}
+                    {printers.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: C.mu }}>Rotate:</span>
+                  {[0, 90, 180, 270].map(d => <button key={d} onClick={() => setRotation(d)} style={pill(rotation === d)}>{d}°</button>)}
+                </div>
+              </>
+            )}
+
+            {/* Preview of the exact image sent to the printer */}
+            {hState !== "missing" && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                {preview
+                  ? <img src={preview} alt="Label preview" style={{ width: "100%", maxWidth: 320, aspectRatio: "2 / 1", background: "#fff", borderRadius: 6, border: `1px solid ${C.br}`, imageRendering: "pixelated" }} />
+                  : <div style={{ fontSize: 12, color: C.mu2, padding: "10px 0" }}>Select an asset below to preview its label.</div>}
+                {preview && <div style={{ fontSize: 10, color: C.mu2 }}>Preview · 50 × 25 mm{selAssets.length > 1 ? ` · showing 1 of ${selAssets.length}` : ""}</div>}
+              </div>
+            )}
+
+            {progress && (
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: progress.failed ? C.err : progress.done === progress.total ? C.ok : C.mu }}>
+                {progress.done < progress.total
+                  ? `Printing ${progress.done} of ${progress.total}…`
+                  : progress.failed
+                    ? `Done — ${progress.total - progress.failed} printed, ${progress.failed} failed`
+                    : `✓ Printed ${progress.total} label${progress.total !== 1 ? "s" : ""}`}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Thermal hint + rotation */}
-        {mode === "thermal" && (
-          <>
-            <div style={{ background: `${C.ac}0D`, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: "10px 14px", fontSize: 12, color: C.mu, lineHeight: 1.6 }}>
-              <div style={{ color: C.tx, fontWeight: 700, marginBottom: 4 }}>For other thermal printers</div>
-              For the DP27, use the <strong style={{ color: C.tx }}>WePrint</strong> tab instead — its Windows driver only exposes a 50×300mm continuous size that feeds 300mm per job. This browser path works for printers whose driver exposes a true <strong style={{ color: C.tx }}>50 × 25mm gap</strong> paper size. Select that size in the print dialog with <strong style={{ color: C.tx }}>Margins: None</strong> and <strong style={{ color: C.tx }}>Scale: 100%</strong>.
-            </div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: C.mu }}>Rotation:</span>
-              {[0, 90, 180, 270].map(deg => (
-                <button key={deg} onClick={() => setRotation(deg)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${rotation === deg ? C.ac : C.br}`, background: rotation === deg ? `${C.ac}15` : "transparent", color: rotation === deg ?C.acD:C.mu, cursor: "pointer", fontSize: 12, fontFamily: "'Inter',sans-serif" }}>{deg}°</button>
-              ))}
-              <span style={{ fontSize: 11, color: C.mu2 }}>If the label prints sideways or upside-down, change this until it reads correctly.</span>
-            </div>
-
-            {/* Live preview of one label at chosen rotation */}
-            <div style={{ display: "flex", justifyContent: "center", padding: "6px 0" }}>
-              <ThermalPreview asset={selAssets[0]} rotation={rotation} wsName={selAssets[0] ? getWorkstationName(selAssets[0].id) : null} />
-            </div>
-          </>
+        {/* WePrint instructions */}
+        {mode === "weprint" && (
+          <div style={{ background: `${C.ac}0D`, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: "12px 14px", fontSize: 12.5, color: C.mu, lineHeight: 1.7 }}>
+            <div>1. Export the selected labels and open <strong style={{ color: C.tx }}>WePrint</strong> (app or web).</div>
+            <div>2. <strong style={{ color: C.tx }}>One-time:</strong> template <strong style={{ color: C.tx }}>50 × 25 mm</strong>, type Label, gap 3 mm. Bind a QRCode to <strong style={{ color: C.tx }}>Code</strong> and Text to <strong style={{ color: C.tx }}>Name</strong> / <strong style={{ color: C.tx }}>Code</strong> / <strong style={{ color: C.tx }}>Workstation</strong>.</div>
+            <div>3. Load the Excel file into the template and bulk print.</div>
+          </div>
         )}
 
         {/* A4 columns */}
         {mode === "a4" && (
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <span style={{ fontSize: 13, color: C.mu }}>Columns per row:</span>
-            {[3, 4, 5, 6].map(n => (
-              <button key={n} onClick={() => setA4Cols(n)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${a4Cols === n ? C.ac : C.br}`, background: a4Cols === n ? `${C.ac}15` : "transparent", color: a4Cols === n ?C.acD:C.mu, cursor: "pointer", fontSize: 12, fontFamily: "'Inter',sans-serif" }}>{n}</button>
-            ))}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, color: C.mu }}>Columns:</span>
+            {[3, 4, 5, 6].map(n => <button key={n} onClick={() => setA4Cols(n)} style={pill(a4Cols === n)}>{n}</button>)}
           </div>
         )}
 
-        {/* Label preview chip */}
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={() => setSelected(new Set(assets.map(a => a.id)))} variant="ghost">Select All</Btn>
-          <Btn onClick={() => setSelected(new Set())} variant="ghost">Select None</Btn>
+        {/* Selection */}
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, code, serial, tag…" />
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+          <Btn onClick={() => setSelected(s => new Set([...s, ...visible.map(a => a.id)]))} variant="ghost">Select {search ? "shown" : "all"} ({visible.length})</Btn>
+          <Btn onClick={() => setSelected(new Set())} variant="ghost">Clear</Btn>
           {Object.entries(CATS).map(([k, v]) => (
-            <Btn key={k} onClick={() => setSelected(new Set(assets.filter(a => a.cat === k).map(a => a.id)))} variant="ghost" style={{ fontSize: 11 }}>{v.emoji}</Btn>
+            <Btn key={k} onClick={() => setSelected(new Set(assets.filter(a => a.cat === k).map(a => a.id)))} variant="ghost" style={{ padding: "4px 8px" }} title={v.label}><CatIcon cat={k} size={16} /></Btn>
           ))}
         </div>
 
-        {/* Asset list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 340, overflowY: "auto" }}>
-          {assets.map(a => {
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+          {visible.map(a => {
             const wsName = getWorkstationName(a.id);
+            const on = selected.has(a.id);
             return (
-              <div key={a.id} onClick={() => toggle(a.id)} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 14px", background: selected.has(a.id) ? `${C.ac}10` : C.el, border: `1px solid ${selected.has(a.id) ? C.ac : C.br}`, borderRadius: 10, cursor: "pointer", transition: "all 0.15s" }}>
-                <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${selected.has(a.id) ?C.acD:C.mu}`, background: selected.has(a.id) ? C.ac : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {selected.has(a.id) && <span style={{ color: C.acTx, fontSize: 12, lineHeight: 1, fontWeight: 800 }}>✓</span>}
+              <div key={a.id} onClick={() => toggle(a.id)} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 12px", background: on ? `${C.ac}10` : C.el, border: `1px solid ${on ? C.ac : C.br}`, borderRadius: 10, cursor: "pointer" }}>
+                <div style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${on ? C.ac : C.mu}`, background: on ? C.ac : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {on && <span style={{ color: C.acTx, fontSize: 13, lineHeight: 1, fontWeight: 800 }}>✓</span>}
                 </div>
-                <div style={{ fontSize: 18, flexShrink: 0 }}>{CATS[a.cat]?.emoji}</div>
+                <div style={{ fontSize: 18, flexShrink: 0 }}><CatIcon cat={a.cat} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
-                  <div style={{ fontSize: 11, color: C.mu, fontFamily: "'Noto Sans Mono',monospace" }}>
+                  <div style={{ fontSize: 11, color: C.mu, fontFamily: "'Noto Sans Mono',monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {a.code}
                     {wsName && <span style={{ marginLeft: 8, color: C.ac2 }}>🖥 {wsName}</span>}
                   </div>
@@ -288,6 +275,7 @@ ${selAssets.map(a => buildFlatLabelHtml(a)).join("\n")}
               </div>
             );
           })}
+          {visible.length === 0 && <div style={{ fontSize: 12, color: C.mu, padding: 10, textAlign: "center" }}>No assets match “{search}”.</div>}
         </div>
       </div>
     </Modal>

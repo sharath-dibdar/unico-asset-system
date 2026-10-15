@@ -10,7 +10,7 @@ const TAB = ({ id, active, onClick, children }) => (
   </button>
 );
 
-export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onCheckout, onDispose, onUpdate }) {
+export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onCheckout, onDispose, onUpdate, onPrintLabel }) {
   const [tab, setTab]         = useState("info");
   const [svcForm, setSvcForm] = useState(null);
 
@@ -46,6 +46,7 @@ export default function AssetDetail({ asset: a, isAdmin, onEdit, onDelete, onChe
       {/* Header actions */}
       <div style={{ display:"flex", gap:8, justifyContent:"flex-end", flexWrap:"wrap" }}>
         {!isDisposed && <Btn onClick={()=>onCheckout(a)} variant="secondary">⇄ Check Out</Btn>}
+        {onPrintLabel && <Btn onClick={()=>onPrintLabel(a)} variant="secondary">🏷 Print Label</Btn>}
         {isAdmin && onEdit    && <Btn onClick={onEdit} variant="secondary">✏  Edit</Btn>}
         {isAdmin && !isDisposed && onDispose && <Btn onClick={()=>onDispose(a)} variant="secondary" style={{ color:C.ac2 }}>♻  Dispose</Btn>}
         {isAdmin && onDelete  && <Btn onClick={()=>{ if(confirm(`Delete "${a.name}"?`)) onDelete(a.id); }} variant="danger">🗑  Delete</Btn>}

@@ -1,4 +1,5 @@
 import { C, CATS } from "../constants.js";
+import { CatIcon } from "../components/Icons.jsx";
 import { fDate } from "../utils.js";
 import { Badge, Btn, EmptyState } from "../components/UI.jsx";
 
@@ -29,7 +30,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
     return (
       <div style={{ background:C.sf, border:`1px solid ${overdue.includes(c)?C.err+"50":C.br}`, borderRadius:12, padding:"14px 18px", display:"flex", gap:14, alignItems:"center" }}>
         <div style={{ width:40, height:40, background:C.el, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>
-          {CATS[asset?.cat]?.emoji||"📦"}
+          <CatIcon cat={asset?.cat} />
         </div>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontSize:14, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.assetName}</div>
@@ -87,7 +88,7 @@ export default function Checkout({ checkouts, assets, onReturn, onNewCheckout, o
         <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
           {items.map(c => {
             const asset = assets.find(a => a.id === c.assetId);
-            return <span key={c.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"4px 10px", borderRadius:8 }}>{CATS[asset?.cat]?.emoji} {c.assetName}</span>;
+            return <span key={c.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"4px 10px", borderRadius:8 }}><CatIcon cat={asset?.cat} /> {c.assetName}</span>;
           })}
         </div>
 

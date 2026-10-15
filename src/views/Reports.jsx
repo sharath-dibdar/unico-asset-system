@@ -12,7 +12,7 @@ export default function Reports({ assets, checkouts, vendors, onOpenExport }) {
   const byCat = Object.entries(CATS).map(([k,v]) => {
     const catAssets = assets.filter(a=>a.cat===k);
     const bv = catAssets.reduce((s,a)=>s+(CATS[a.cat]&&a.price&&a.pDate?calcDep(a.price,a.pDate,CATS[a.cat].rate).cur:0),0);
-    return { key:k, label:v.label, emoji:v.emoji, count:catAssets.length, value:catAssets.reduce((s,a)=>s+(a.price||0),0), bv };
+    return { key:k, label:v.label, count:catAssets.length, value:catAssets.reduce((s,a)=>s+(a.price||0),0), bv };
   }).filter(r=>r.count>0);
 
   // by person
@@ -75,7 +75,7 @@ export default function Reports({ assets, checkouts, vendors, onOpenExport }) {
             <tbody>
               {byCat.map(r=>(
                 <tr key={r.key} style={{ borderBottom:`1px solid ${C.br}` }}>
-                  <TD>{r.emoji} {r.label}</TD>
+                  <TD><span style={{ display:"inline-flex", alignItems:"center", gap:6 }}><CatIcon cat={r.key} size={15} />{r.label}</span></TD>
                   <TD right>{r.count}</TD>
                   <TD right accent>{fINR(r.value)}</TD>
                   <TD right>{fINR(r.bv)}</TD>

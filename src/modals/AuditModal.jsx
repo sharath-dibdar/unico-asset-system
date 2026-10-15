@@ -42,7 +42,7 @@ export function CreateAuditModal({ assets, onSave, onClose }) {
           <div><Label>Category</Label>
             <select value={form.scopeValue} onChange={e=>set("scopeValue",e.target.value)}>
               <option value="">Select category…</option>
-              {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+              {Object.entries(CATS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
         )}
@@ -119,7 +119,7 @@ export function AuditRunModal({ audit, assets, onComplete, onClose }) {
         {/* Asset info */}
         <div style={{ padding:"16px 24px", borderBottom:`1px solid ${C.br}`, background:C.el }}>
           <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-            <div style={{ fontSize:28 }}>{CATS[asset?.cat]?.emoji||"📦"}</div>
+            <div style={{ fontSize:28 }}><CatIcon cat={asset?.cat} /></div>
             <div>
               <div style={{ fontSize:16, fontWeight:700 }}>{item.assetName}</div>
               <div style={{ fontSize:12, color:C.mu, fontFamily:"'Noto Sans Mono',monospace" }}>{item.assetCode}</div>

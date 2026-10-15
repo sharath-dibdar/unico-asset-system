@@ -1,6 +1,12 @@
-﻿import { C, CATS, ST_CFG } from "../constants.js";
+﻿import { useState } from "react";
+import { C, CATS, ST_CFG } from "../constants.js";
 import { dTo } from "../utils.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { CatIcon } from "./Icons.jsx";
+import {
+  LayoutDashboard, Boxes, ArrowLeftRight, Monitor, Store, ClipboardCheck, ChartColumn, Users,
+  ScanLine, Plus, Printer, Upload, Download, Menu, LogOut, ArrowLeft,
+} from "lucide-react";
 
 export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImport, onExport, onPrintLabels, onScan }) {
   const { me, isAdmin, logout } = useAuth();
@@ -46,32 +52,32 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
       {/* Scan button — everyone */}
       <div style={{ padding:"0 16px 10px" }}>
         <button onClick={onScan} style={{ width:"100%", background:`${C.ac}18`, border:`1px solid ${C.ac}40`, color:C.acD, cursor:"pointer", padding:"10px", borderRadius:10, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-          📷 Scan QR
+          <ScanLine size={16} strokeWidth={2} /> Scan QR
         </button>
       </div>
 
       {/* Add button — admin only */}
       {isAdmin && (
         <div style={{ padding:"0 16px 12px" }}>
-          <button onClick={onAdd} style={{ width:"100%", background:C.el, border:`1px solid ${C.br}`, color:C.tx, cursor:"pointer", padding:"10px", borderRadius:10, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif" }}>
-            + New Asset
+          <button onClick={onAdd} style={{ width:"100%", background:C.el, border:`1px solid ${C.br}`, color:C.tx, cursor:"pointer", padding:"10px", borderRadius:10, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+            <Plus size={15} strokeWidth={2.2} /> New Asset
           </button>
         </div>
       )}
 
       {navGroup("Main")}
-      {navItem("dashboard",    "⊞",  "Dashboard")}
-      {navItem("list",         "≡",  "All Assets")}
-      {navItem("checkout",     "⇄",  "Check-In / Out", checkedOut)}
-      {navItem("workstations", "🖥️", "Workstations")}
+      {navItem("dashboard",    <LayoutDashboard size={16} strokeWidth={2} />,  "Dashboard")}
+      {navItem("list",         <Boxes size={16} strokeWidth={2} />,  "All Assets")}
+      {navItem("checkout",     <ArrowLeftRight size={16} strokeWidth={2} />,  "Check-In / Out", checkedOut)}
+      {navItem("workstations", <Monitor size={16} strokeWidth={2} />, "Workstations")}
 
       {isAdmin && (
         <>
           {navGroup("Management")}
-          {navItem("vendors",   "🏪", "Vendor Book")}
-          {navItem("audits",    "📋", "Physical Audits", pendingAudits)}
-          {navItem("reports",   "📊", "Reports")}
-          {navItem("useradmin", "👥", "Users & Access")}
+          {navItem("vendors",   <Store size={16} strokeWidth={2} />, "Vendor Book")}
+          {navItem("audits",    <ClipboardCheck size={16} strokeWidth={2} />, "Physical Audits", pendingAudits)}
+          {navItem("reports",   <ChartColumn size={16} strokeWidth={2} />, "Reports")}
+          {navItem("useradmin", <Users size={16} strokeWidth={2} />, "Users & Access")}
         </>
       )}
 
@@ -84,7 +90,7 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
               <button key={k} onClick={() => setView("list")} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"6px 22px", background:"transparent", border:"none", cursor:"pointer", color:C.mu, fontSize:12, fontFamily:"'Inter',sans-serif", width:"100%", transition:"color 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.color = C.tx}
                 onMouseLeave={e => e.currentTarget.style.color = C.mu}>
-                <span>{v.emoji}  {v.label}</span>
+                <span style={{ display:"inline-flex", alignItems:"center", gap:8 }}><CatIcon cat={k} size={14} />{v.label}</span>
                 <span style={{ background:C.el, padding:"1px 8px", borderRadius:10, fontSize:10, color:C.mu }}>{n}</span>
               </button>
             );
@@ -106,9 +112,9 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
       {/* Admin-only bottom actions */}
       {isAdmin && (
         <div style={{ padding:"12px 16px 0", display:"flex", flexDirection:"column", gap:6 }}>
-          <button onClick={onImport}      style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 12px", borderRadius:8, fontSize:12, fontFamily:"'Inter',sans-serif", textAlign:"left" }}>⬆  Import Excel</button>
-          <button onClick={onExport}      style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 12px", borderRadius:8, fontSize:12, fontFamily:"'Inter',sans-serif", textAlign:"left" }}>⬇  Export / Reports</button>
-          <button onClick={onPrintLabels} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 12px", borderRadius:8, fontSize:12, fontFamily:"'Inter',sans-serif", textAlign:"left" }}>🖨  Print QR Labels</button>
+          <button onClick={onImport}      style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 12px", borderRadius:8, fontSize:12, fontFamily:"'Inter',sans-serif", textAlign:"left", display:"flex", alignItems:"center", gap:8 }}><Upload size={14} strokeWidth={2} /> Import Excel</button>
+          <button onClick={onExport}      style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 12px", borderRadius:8, fontSize:12, fontFamily:"'Inter',sans-serif", textAlign:"left", display:"flex", alignItems:"center", gap:8 }}><Download size={14} strokeWidth={2} /> Export / Reports</button>
+          <button onClick={onPrintLabels} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"8px 12px", borderRadius:8, fontSize:12, fontFamily:"'Inter',sans-serif", textAlign:"left", display:"flex", alignItems:"center", gap:8 }}><Printer size={14} strokeWidth={2} /> Print QR Labels</button>
         </div>
       )}
 
@@ -121,7 +127,7 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
           <div style={{ fontSize:12, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{me?.name}</div>
           <div style={{ fontSize:10, color:C.mu, textTransform:"uppercase", letterSpacing:"0.06em" }}>{me?.role}</div>
         </div>
-        <button onClick={logout} title="Sign out" style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:15, padding:"2px 4px", lineHeight:1 }}>⏏</button>
+        <button onClick={logout} title="Sign out" style={{ background:"none", border:"none", color:C.mu, cursor:"pointer", fontSize:15, padding:"2px 4px", lineHeight:1, display:"flex" }}><LogOut size={16} strokeWidth={2} /></button>
       </div>
 
       <div style={{ padding:"10px 22px 0" }}>
@@ -136,32 +142,32 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
 export function TopBar({ view, onAdd, onBack, onScan, selectedName }) {
   const { isAdmin } = useAuth();
   const titles = { dashboard:"Dashboard", list:"All Assets", detail:"Asset Detail", vendors:"Vendor Book", audits:"Physical Audits", audit:"Audit Detail", reports:"Reports", checkout:"Check-In / Out", workstations:"Workstations", useradmin:"Users & Access" };
+  const showBack = view === "detail" || view === "audit";
   return (
-    <div style={{ background:C.sf, borderBottom:`1px solid ${C.br}`, padding:"14px 22px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, gap:12 }}>
-      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        {(view === "detail" || view === "audit") && (
-          <button onClick={onBack} style={{ background:C.el, border:`1px solid ${C.br}`, color:C.mu, cursor:"pointer", padding:"7px 12px", borderRadius:8, fontSize:13, fontFamily:"'Inter',sans-serif" }}>← Back</button>
+    <div className="topbar safe-t" style={{ background:C.sf, borderBottom:`1px solid ${C.br}`, display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, gap:12 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0, flex:1 }}>
+        {showBack && (
+          <button onClick={onBack} aria-label="Back" style={{ background:C.el, border:`1px solid ${C.br}`, color:C.tx, cursor:"pointer", minWidth:40, height:40, padding:"0 12px", borderRadius:10, fontSize:14, fontWeight:600, fontFamily:"'Inter',sans-serif", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
+            <ArrowLeft size={18} strokeWidth={2} /><span className="dsk">Back</span>
+          </button>
         )}
-        <div>
-          <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:17, color:C.tx, lineHeight:1 }}>
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:17, color:C.tx, lineHeight:1.2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
             {view === "detail" && selectedName ? selectedName : titles[view] || ""}
           </div>
           {view === "detail" && selectedName && <div style={{ fontSize:11, color:C.mu, marginTop:2 }}>Asset Detail</div>}
         </div>
       </div>
       <div style={{ display:"flex", gap:8, flexShrink:0 }} className="mob">
-        <button onClick={onScan} style={{ background:`${C.ac}18`, border:`1px solid ${C.ac}40`, color:C.acD, cursor:"pointer", padding:"9px 14px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif" }}>
-          📷
-        </button>
         {isAdmin && (
-          <button onClick={onAdd} style={{ background:C.ac, color:C.acTx, border:"none", cursor:"pointer", padding:"9px 18px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif" }}>
-            + Add Asset
+          <button onClick={onAdd} aria-label="Add asset" style={{ background:C.ac, color:C.acTx, border:"none", cursor:"pointer", width:40, height:40, borderRadius:10, fontSize:24, fontWeight:500, lineHeight:1, fontFamily:"'Inter',sans-serif", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Plus size={22} strokeWidth={2.2} />
           </button>
         )}
       </div>
       <div style={{ display:"flex", gap:8, flexShrink:0 }} className="dsk">
         <button onClick={onScan} style={{ background:`${C.ac}18`, border:`1px solid ${C.ac}40`, color:C.acD, cursor:"pointer", padding:"9px 14px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif" }}>
-          📷 Scan
+          <ScanLine size={16} strokeWidth={2} /> Scan
         </button>
         {isAdmin && (
           <button onClick={onAdd} style={{ background:C.ac, color:C.acTx, border:"none", cursor:"pointer", padding:"9px 18px", borderRadius:9, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif" }}>
@@ -173,33 +179,94 @@ export function TopBar({ view, onAdd, onBack, onScan, selectedName }) {
   );
 }
 
-export function BottomNav({ view, setView, onAdd, onScan }) {
-  const { isAdmin } = useAuth();
-  const items = [
-    { id:"dashboard",    icon:"⊞",  l:"Home" },
-    { id:"list",         icon:"≡",  l:"Assets" },
-    { id:"checkout",     icon:"⇄",  l:"Check-In/Out" },
-    { id:"workstations", icon:"🖥️", l:"Stations" },
-    ...(isAdmin ? [{ id:"vendors", icon:"🏪", l:"Vendors" }] : [{ id:"audits", icon:"📋", l:"Audits" }]),
-  ];
+const countBadge = n => n > 0 && (
+  <span style={{ position:"absolute", top:4, left:"calc(50% + 6px)", background:C.err, color:"#fff", borderRadius:9, fontSize:10, fontWeight:700, padding:"1px 5px", minWidth:16, textAlign:"center", lineHeight:1.4 }}>{n}</span>
+);
+
+// Phone navigation: four tabs + a raised Scan button. Everything else lives
+// in the "More" sheet (the desktop sidebar is hidden on phones).
+export function BottomNav({ view, setView, assets, audits, onScan, onImport, onPrintLabels }) {
+  const { me, isAdmin, logout } = useAuth();
+  const [more, setMore] = useState(false);
+  const checkedOut    = (assets || []).filter(a => a.status === "in_use").length;
+  const pendingAudits = (audits || []).filter(a => a.status === "pending" || a.status === "in_progress").length;
+  const inMore = ["workstations","audits","audit","vendors","reports","useradmin"].includes(view);
+
+  const tab = (id, icon, label, badge, active = view === id) => (
+    <button key={id} onClick={() => setView(id)} style={{ flex:1, background:"none", border:"none", cursor:"pointer", color:active ? C.tx : C.mu, padding:"9px 0 7px", display:"flex", flexDirection:"column", alignItems:"center", gap:3, position:"relative", minHeight:58 }}>
+      {active && <span style={{ position:"absolute", top:0, width:28, height:3, borderRadius:"0 0 3px 3px", background:C.ac }} />}
+      <span style={{ display:"flex", height:22, alignItems:"center" }}>{icon}</span>
+      <span style={{ fontSize:11, fontWeight:active ? 700 : 500 }}>{label}</span>
+      {countBadge(badge)}
+    </button>
+  );
+
   return (
-    <div className="mob" style={{ background:C.sf, borderTop:`1px solid ${C.br}`, display:"flex", flexShrink:0, zIndex:10 }}>
-      {items.map(n => (
-        <button key={n.id} onClick={() => setView(n.id)} style={{ flex:1, background:"none", border:"none", cursor:"pointer", color:view === n.id ?C.acD:C.mu, padding:"10px 0 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontSize:16 }}>
-          <span style={{ fontSize:16 }}>{n.icon}</span>
-          <span style={{ fontSize:9, fontFamily:"'Inter',sans-serif" }}>{n.l}</span>
+    <>
+      <nav className="mob safe-b" style={{ background:C.sf, borderTop:`1px solid ${C.br}`, display:"flex", alignItems:"stretch", flexShrink:0, zIndex:10, boxShadow:"0 -2px 12px rgba(15,17,21,0.05)" }}>
+        {tab("dashboard", <LayoutDashboard size={21} strokeWidth={2} />, "Home")}
+        {tab("list", <Boxes size={21} strokeWidth={2} />, "Assets", 0, view === "list" || view === "detail")}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", paddingBottom:7, gap:3 }}>
+          <button onClick={onScan} aria-label="Scan QR" style={{ width:56, height:56, marginTop:-22, borderRadius:"50%", background:C.ac, border:`4px solid ${C.sf}`, boxShadow:"0 4px 14px rgba(255,180,0,0.45)", color:C.acTx, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}><ScanLine size={24} strokeWidth={2} /></button>
+          <span style={{ fontSize:11, fontWeight:700, color:C.tx }}>Scan</span>
+        </div>
+        {tab("checkout", <ArrowLeftRight size={21} strokeWidth={2} />, "In / Out", checkedOut)}
+        <button onClick={() => setMore(true)} style={{ flex:1, background:"none", border:"none", cursor:"pointer", color:inMore ? C.tx : C.mu, padding:"9px 0 7px", display:"flex", flexDirection:"column", alignItems:"center", gap:3, position:"relative", minHeight:58 }}>
+          {inMore && <span style={{ position:"absolute", top:0, width:28, height:3, borderRadius:"0 0 3px 3px", background:C.ac }} />}
+          <span style={{ display:"flex", height:22, alignItems:"center" }}><Menu size={21} strokeWidth={2} /></span>
+          <span style={{ fontSize:11, fontWeight:inMore ? 700 : 500 }}>More</span>
+          {countBadge(pendingAudits)}
         </button>
-      ))}
-      <button onClick={onScan} style={{ flex:1, background:"none", border:"none", cursor:"pointer", color:C.acD, padding:"10px 0 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-        <span style={{ fontSize:16 }}>📷</span>
-        <span style={{ fontSize:9, fontFamily:"'Inter',sans-serif" }}>Scan</span>
-      </button>
-      {isAdmin && (
-        <button onClick={onAdd} style={{ flex:1, background:"none", border:"none", cursor:"pointer", color:C.acD, padding:"10px 0 8px", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-          <span style={{ fontSize:16 }}>＋</span>
-          <span style={{ fontSize:9, fontFamily:"'Inter',sans-serif" }}>Add</span>
-        </button>
+      </nav>
+
+      {more && (
+        <MoreSheet onClose={() => setMore(false)} view={view} setView={setView} isAdmin={isAdmin} me={me} logout={logout}
+          pendingAudits={pendingAudits} onImport={onImport} onPrintLabels={onPrintLabels} />
       )}
+    </>
+  );
+}
+
+function MoreSheet({ onClose, view, setView, isAdmin, me, logout, pendingAudits, onImport, onPrintLabels }) {
+  const go  = id => { setView(id); onClose(); };
+  const act = fn => { onClose(); fn(); };
+  const item = (key, icon, label, onClick, { badge = 0, active = false } = {}) => (
+    <button key={key} onClick={onClick} style={{ display:"flex", alignItems:"center", gap:14, width:"100%", minHeight:52, padding:"0 14px", background:active ? C.glow : "transparent", border:active ? `1px solid ${C.ac}` : "1px solid transparent", borderRadius:12, cursor:"pointer", fontSize:15, fontWeight:600, color:C.tx, textAlign:"left", fontFamily:"'Inter',sans-serif" }}>
+      <span style={{ width:28, display:"flex", justifyContent:"center", color:C.mu }}>{icon}</span>
+      <span style={{ flex:1 }}>{label}</span>
+      {badge > 0 && <span style={{ background:C.err, color:"#fff", borderRadius:10, fontSize:11, fontWeight:700, padding:"2px 8px" }}>{badge}</span>}
+    </button>
+  );
+  const divider = k => <div key={k} style={{ height:1, background:C.br, margin:"8px 4px" }} />;
+
+  return (
+    <div className="mob" onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(15,17,21,0.45)", zIndex:150, display:"flex", alignItems:"flex-end" }}>
+      <div className="safe-b fade" onClick={e => e.stopPropagation()} style={{ width:"100%", background:C.sf, borderRadius:"20px 20px 0 0", padding:"6px 10px 12px", maxHeight:"85dvh", overflowY:"auto", boxShadow:C.shadowLg }}>
+        <div style={{ width:40, height:4, borderRadius:2, background:C.br, margin:"6px auto 10px" }} />
+        {item("workstations", <Monitor size={20} strokeWidth={2} />, "Workstations", () => go("workstations"), { active:view === "workstations" })}
+        {item("audits", <ClipboardCheck size={20} strokeWidth={2} />, "Physical Audits", () => go("audits"), { badge:pendingAudits, active:view === "audits" || view === "audit" })}
+        {isAdmin && (
+          <>
+            {item("vendors",   <Store size={20} strokeWidth={2} />, "Vendor Book",      () => go("vendors"),   { active:view === "vendors" })}
+            {item("reports",   <ChartColumn size={20} strokeWidth={2} />, "Reports & Export", () => go("reports"),   { active:view === "reports" })}
+            {item("useradmin", <Users size={20} strokeWidth={2} />, "Users & Access",   () => go("useradmin"), { active:view === "useradmin" })}
+            {divider("d1")}
+            {item("print",  <Printer size={20} strokeWidth={2} />, "Print QR Labels", () => act(onPrintLabels))}
+            {item("import", <Upload size={20} strokeWidth={2} />, "Import Excel",    () => act(onImport))}
+          </>
+        )}
+        {divider("d2")}
+        <div style={{ display:"flex", alignItems:"center", gap:12, padding:"8px 14px" }}>
+          <div style={{ width:38, height:38, borderRadius:"50%", background:`${C.ac}30`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:C.acD, flexShrink:0 }}>
+            {me?.name?.[0]?.toUpperCase() || "?"}
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:14, fontWeight:700, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{me?.name}</div>
+            <div style={{ fontSize:11, color:C.mu, textTransform:"uppercase", letterSpacing:"0.06em" }}>{me?.role}</div>
+          </div>
+          <button onClick={() => { onClose(); logout(); }} style={{ background:`${C.err}10`, border:`1px solid ${C.err}30`, color:C.err, cursor:"pointer", padding:"9px 14px", borderRadius:10, fontSize:13, fontWeight:700, fontFamily:"'Inter',sans-serif", display:"flex", alignItems:"center", gap:6 }}><LogOut size={15} strokeWidth={2} /> Sign out</button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS } from "../constants.js";
 import { Btn, EmptyState } from "../components/UI.jsx";
 
@@ -7,7 +8,7 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
 
   const linked = (vid) => assets.filter(a => a.vendorId === vid).length;
   const byCat  = (vid) => Object.entries(CATS)
-    .map(([k, cat]) => ({ cat:k, label:cat.label, emoji:cat.emoji, count:assets.filter(a => a.vendorId === vid && a.cat === k).length }))
+    .map(([k, cat]) => ({ cat:k, label:cat.label, count:assets.filter(a => a.vendorId === vid && a.cat === k).length }))
     .filter(c => c.count > 0);
 
   if (vendors.length === 0) return (
@@ -71,7 +72,7 @@ export default function Vendors({ vendors, assets, onAdd, onEdit, onDelete }) {
                             <div style={{ fontWeight:700, marginBottom:4 }}>{assetCount} asset{assetCount !== 1 ? "s" : ""}</div>
                             <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                               {cats.map(c => (
-                                <span key={c.cat} style={{ fontSize:11, background:C.el, color:C.mu, padding:"2px 8px", borderRadius:8 }}>{c.emoji} {c.count} {c.label}</span>
+                                <span key={c.cat} style={{ fontSize:11, background:C.el, color:C.mu, padding:"2px 8px", borderRadius:8 }}><CatIcon cat={c.cat} size={12} /> {c.count} {c.label}</span>
                               ))}
                             </div>
                           </div>

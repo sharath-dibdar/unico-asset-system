@@ -1,4 +1,5 @@
 import { C, CATS } from "../constants.js";
+import { CatIcon } from "../components/Icons.jsx";
 import { Badge, Btn, EmptyState } from "../components/UI.jsx";
 
 export default function Workstations({ workstations, assets, isAdmin, onAdd, onEdit, onDelete, onCheckOut, onCheckIn }) {
@@ -41,7 +42,7 @@ export default function Workstations({ workstations, assets, isAdmin, onAdd, onE
 
               <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                 {bundled.map(a => (
-                  <span key={a.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"3px 9px", borderRadius:8 }}>{CATS[a.cat]?.emoji} {a.name}</span>
+                  <span key={a.id} style={{ fontSize:11, background:C.el, color:C.mu, padding:"3px 9px", borderRadius:8 }}><CatIcon cat={a.cat} /> {a.name}</span>
                 ))}
                 {bundled.length === 0 && <span style={{ fontSize:12, color:C.mu2 }}>No assets bundled</span>}
               </div>
