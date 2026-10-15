@@ -115,7 +115,29 @@ export function labelDate(d) {
 }
 
 const SANS = "Arial, Helvetica, sans-serif";
-const MONO = '"Courier New", Consolas, monospace';
+
+// The DP27 head is 48 mm (384 dots) on 50 mm stock: ~1 mm each side never
+// prints. Keep everything this far in from the 50 mm edges (~2.2 mm).
+const SAFE_X = 18;
+const SAFE_Y = 12;
+
+// Thermal heads print dots, not greys. Canvas text is anti-aliased, and the
+// printer's own threshold drops the grey edge pixels, so thin strokes break
+// up. Snap to pure black/white here, leaning greys towards black, so text
+// comes out solid — and the preview shows exactly what will print.
+function toMonochrome(canvas, cutoff = 190) {
+  const g = canvas.getContext("2d");
+  const img = g.getImageData(0, 0, canvas.width, canvas.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const v = d[i + 3] < 128 || lum >= cutoff ? 255 : 0;
+    d[i] = d[i + 1] = d[i + 2] = v;
+    d[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return canvas;
+}
 
 // 50×15 mm Code 128 label: barcode on top, code + name, then location · date
 // and a small logo. Only 0°/180° make sense — the barcode needs the long edge.
@@ -128,32 +150,36 @@ async function renderBarcodeLabel({ name, code, location, purchaseDate }, rotati
   g.imageSmoothingEnabled = false;
 
   // Bars: 2 dots (0.25 mm) per module; fall back to 1 dot for very long codes
-  // so a ≥10-module quiet zone always remains on both sides.
+  // so the bars stay inside the printable width with a quiet zone.
   const bars = document.createElement("canvas");
-  const draw = moduleW => JsBarcode(bars, String(code || ""), { format: "CODE128", width: moduleW, height: 58, margin: 0, displayValue: false, background: "#ffffff", lineColor: "#000000" });
+  const draw = moduleW => JsBarcode(bars, String(code || ""), { format: "CODE128", width: moduleW, height: 50, margin: 0, displayValue: false, background: "#ffffff", lineColor: "#000000" });
   draw(2);
-  if (bars.width > W - 2 * 10 * 2) draw(1);
-  g.drawImage(bars, Math.round((W - bars.width) / 2), 5);
+  if (bars.width > W - 2 * (SAFE_X + 4)) draw(1);
+  g.drawImage(bars, Math.round((W - bars.width) / 2), 4);
 
-  const pad = 10, logo = await loadLogo();
+  const logo = await loadLogo();
+  const left = SAFE_X, right = W - SAFE_X, inner = right - left;
   g.fillStyle = "#000"; g.textBaseline = "top";
-  // Line 1: code (bold mono) left, name right
-  let y = 68;
-  g.font = `bold 17px ${MONO}`;
-  const codeTxt = wrap(g, code, W - 2 * pad, 1)[0] || "";
-  g.fillText(codeTxt, pad, y);
-  const cw = g.measureText(codeTxt).width + 12;
-  g.font = `bold 14px ${SANS}`;
-  const nm = wrap(g, name, W - 2 * pad - cw, 1)[0] || "";
-  g.textAlign = "right"; g.fillText(nm, W - pad, y + 2); g.textAlign = "left";
-  // Line 2: location · date left, logo right
-  y = 91;
-  const logoH = logo ? 14 : 0, logoW = logoH * LOGO_RATIO;
-  if (logo) g.drawImage(logo, W - pad - logoW, y + 1, logoW, logoH);
-  const meta = [location, labelDate(purchaseDate)].filter(Boolean).join("  ·  ");
-  g.font = `14px ${SANS}`;
-  g.fillText(wrap(g, meta, W - 2 * pad - logoW - 10, 1)[0] || "", pad, y);
 
+  // Line 1: code left, name right
+  let y = 60;
+  g.font = `bold 20px ${SANS}`;
+  const codeTxt = wrap(g, code, inner, 1)[0] || "";
+  g.fillText(codeTxt, left, y);
+  const used = g.measureText(codeTxt).width + 12;
+  g.font = `bold 18px ${SANS}`;
+  const nm = wrap(g, name, inner - used, 1)[0] || "";
+  g.textAlign = "right"; g.fillText(nm, right, y + 1); g.textAlign = "left";
+
+  // Line 2: location · date left, logo right
+  y = 87;
+  const logoH = logo ? 17 : 0, logoW = logoH * LOGO_RATIO;
+  if (logo) g.drawImage(logo, right - logoW, y + 1, logoW, logoH);
+  const meta = [location, labelDate(purchaseDate)].filter(Boolean).join(" · ");
+  g.font = `bold 17px ${SANS}`;
+  g.fillText(wrap(g, meta, inner - logoW - 10, 1)[0] || "", left, y);
+
+  toMonochrome(c);
   if (rotation !== 180) return c.toDataURL("image/png");
   const out = document.createElement("canvas");
   out.width = W; out.height = H;
@@ -172,6 +198,10 @@ export async function renderLabel(data, rotation = 0, size = "qr50x25") {
   const H = Math.round(LABEL_H_MM * PX_PER_MM); // 200
   const portrait = rotation === 90 || rotation === 270;
   const cw = portrait ? H : W, ch = portrait ? W : H; // artwork box before rotation
+  // Artwork x/y margins: the unprintable strips are on the label's 50 mm
+  // edges, which become the artwork's top/bottom when rotated.
+  const padX = portrait ? SAFE_Y : SAFE_X;
+  const padY = portrait ? SAFE_X : SAFE_Y;
 
   // Artwork canvas
   const art = document.createElement("canvas");
@@ -180,7 +210,6 @@ export async function renderLabel(data, rotation = 0, size = "qr50x25") {
   a.fillStyle = "#fff"; a.fillRect(0, 0, cw, ch);
   a.imageSmoothingEnabled = false;
 
-  const pad = Math.round(1.5 * PX_PER_MM);
   const [logo, qrCanvas] = await Promise.all([loadLogo(), (async () => {
     const c = document.createElement("canvas");
     await QRCode.toCanvas(c, String(code || ""), { margin: 0, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
@@ -197,69 +226,54 @@ export async function renderLabel(data, rotation = 0, size = "qr50x25") {
   a.textBaseline = "top";
 
   // Lay out the text block at scale s; returns its height, drawing only if `draw`.
-  // Shrinks fonts in steps until everything fits the available height.
+  // Everything is bold Arial: thin strokes don't survive thermal printing.
   const textBlock = (x, top, width, s, align, draw) => {
-    const nameF = Math.round(21 * s), codeF = Math.round(18 * s), metaF = Math.round(15 * s);
-    const logoH = logo ? Math.round(28 * s) : 0;
+    const nameF = Math.round(22 * s), codeF = Math.round(19 * s), metaF = Math.round(16 * s);
+    const logoH = logo ? Math.round(26 * s) : 0;
     let y = top;
     const ax = align === "center" ? x + width / 2 : x;
     a.textAlign = align;
     if (logo) {
       const lw = logoH * LOGO_RATIO;
       if (draw) a.drawImage(logo, align === "center" ? x + (width - lw) / 2 : x, y, lw, logoH);
-      y += logoH + Math.round(8 * s);
+      y += logoH + Math.round(7 * s);
     }
     a.font = `bold ${nameF}px ${SANS}`;
     for (const l of wrap(a, name, width, 2)) { if (draw) a.fillText(l, ax, y); y += nameF * 1.15; }
     y += 3;
-    a.font = `bold ${codeF}px ${MONO}`;
+    a.font = `bold ${codeF}px ${SANS}`;
     if (draw) a.fillText(wrap(a, code, width, 1)[0] || "", ax, y);
     y += codeF * 1.15 + 4;
+    a.font = `bold ${metaF}px ${SANS}`;
     for (const [label, value] of meta) {
-      a.font = `bold ${metaF}px ${SANS}`;
-      const prefix = `${label}: `;
-      const pw = a.measureText(prefix).width;
-      a.font = `${metaF}px ${SANS}`;
-      const rest = wrap(a, value, width - pw, 1)[0] || "";
-      if (draw) {
-        if (align === "center") {
-          const full = pw + a.measureText(rest).width;
-          const sx = x + (width - full) / 2;
-          a.textAlign = "left";
-          a.font = `bold ${metaF}px ${SANS}`; a.fillText(prefix, sx, y);
-          a.font = `${metaF}px ${SANS}`;      a.fillText(rest, sx + pw, y);
-          a.textAlign = align;
-        } else {
-          a.font = `bold ${metaF}px ${SANS}`; a.fillText(prefix, x, y);
-          a.font = `${metaF}px ${SANS}`;      a.fillText(rest, x + pw, y);
-        }
-      }
+      const line = wrap(a, `${label}: ${value}`, width, 1)[0] || "";
+      if (draw) a.fillText(line, ax, y);
       y += metaF * 1.25;
     }
     return y - top;
   };
   const fit = (x, top, width, avail, align) => {
     let s = 1;
-    while (s > 0.7 && textBlock(x, top, width, s, align, false) > avail) s -= 0.05;
+    while (s > 0.85 && textBlock(x, top, width, s, align, false) > avail) s -= 0.05;
     return s;
   };
 
   if (!portrait) {
     // QR left (~19 mm), logo + details right, vertically centred
     const qr = 150; // px ≈ 19 mm at 203 dpi
-    a.drawImage(qrCanvas, pad, Math.round((ch - qr) / 2), qr, qr);
-    const tx = pad + qr + Math.round(1.8 * PX_PER_MM);
-    const tw = cw - tx - pad;
-    const s = fit(tx, 0, tw, ch - pad * 2, "left");
+    a.drawImage(qrCanvas, padX, Math.round((ch - qr) / 2), qr, qr);
+    const tx = padX + qr + 14;
+    const tw = cw - tx - padX;
+    const s = fit(tx, 0, tw, ch - padY * 2, "left");
     const h = textBlock(tx, 0, tw, s, "left", false);
-    textBlock(tx, Math.max(pad, Math.round((ch - h) / 2)), tw, s, "left", true);
+    textBlock(tx, Math.max(padY, Math.round((ch - h) / 2)), tw, s, "left", true);
   } else {
     // Portrait artwork: QR top, logo + details below (centred)
-    const qr = cw - pad * 2;
-    a.drawImage(qrCanvas, pad, pad, qr, qr);
-    const top = pad + qr + 10;
-    const s = fit(pad, top, cw - pad * 2, ch - top - pad, "center");
-    textBlock(pad, top, cw - pad * 2, s, "center", true);
+    const qr = cw - padX * 2;
+    a.drawImage(qrCanvas, padX, padY, qr, qr);
+    const top = padY + qr + 10;
+    const s = fit(padX, top, cw - padX * 2, ch - top - padY, "center");
+    textBlock(padX, top, cw - padX * 2, s, "center", true);
   }
 
   // Compose onto the final W×H label, rotated.
@@ -271,11 +285,11 @@ export async function renderLabel(data, rotation = 0, size = "qr50x25") {
   o.translate(W / 2, H / 2);
   o.rotate((rotation * Math.PI) / 180);
   o.drawImage(art, -cw / 2, -ch / 2);
-  return out.toDataURL("image/png");
+  return toMonochrome(out).toDataURL("image/png");
 }
 
 // Print one rendered label. Returns true on success.
-export async function printImage(base, printerName, dataUrl, { threshold = 160, size = "qr50x25" } = {}) {
+export async function printImage(base, printerName, dataUrl, { threshold = 128, size = "qr50x25" } = {}) {
   const dims = LABEL_SIZES[size] || LABEL_SIZES.qr50x25;
   const params = {
     printerName,
