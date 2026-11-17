@@ -10,6 +10,18 @@ function rows(res) {
   return (res.data || []).map(r => r.data);
 }
 
+// Save changes to an EXISTING row. Use this rather than upsert for anything a
+// non-admin can do: Postgres applies the INSERT policy (admin-only on assets and
+// workstations) to an upsert even when the row already exists, so a non-admin's
+// upsert is rejected while a plain UPDATE is allowed. An UPDATE that RLS filters
+// out matches zero rows without raising an error, so zero rows counts as failure.
+async function updateRow(table, id, patch, notFound) {
+  const { data: hit, error } = await supabase.from(table).update(patch).eq('id', id).select('id');
+  const msg = error?.message || (!hit?.length ? notFound : null);
+  if (msg) console.warn(`[db/${table} update]`, msg);
+  return { ok: !msg, error: msg || undefined };
+}
+
 export const db = {
   assets: {
     load: async () => rows(await supabase.from('assets').select('data').order('created_at')),
@@ -18,6 +30,7 @@ export const db = {
       if (error) console.warn('[db/assets upsert]', error.message);
       return { ok: !error, error: error?.message };
     },
+    update: (a) => updateRow('assets', a.id, { data: a }, 'Asset not found, or you are not allowed to change it.'),
     delete: async (id) => {
       const { error } = await supabase.from('assets').delete().eq('id', id);
       if (error) console.warn('[db/assets delete]', error.message);
@@ -110,7 +123,9 @@ export const db = {
     upsert: async (w) => {
       const { error } = await supabase.from('workstations').upsert({ id: w.id, data: w }, { onConflict: 'id' });
       if (error) console.warn('[db/workstations upsert]', error.message);
+      return { ok: !error, error: error?.message };
     },
+    update: (w) => updateRow('workstations', w.id, { data: w }, 'Workstation not found, or you are not allowed to change it.'),
     delete: async (id) => {
       const { error } = await supabase.from('workstations').delete().eq('id', id);
       if (error) console.warn('[db/workstations delete]', error.message);
@@ -122,11 +137,10 @@ export const db = {
     insert: async (c, userId) => {
       const { error } = await supabase.from('checkouts').insert({ id: c.id, data: c, user_id: userId });
       if (error) console.warn('[db/checkouts insert]', error.message);
+      return { ok: !error, error: error?.message };
     },
-    update: async (c) => {
-      const { error } = await supabase.from('checkouts').update({ data: c }).eq('id', c.id);
-      if (error) console.warn('[db/checkouts update]', error.message);
-    },
+    // Only the user who made the checkout (or an admin) may update it.
+    update: (c) => updateRow('checkouts', c.id, { data: c }, 'Only the person who checked this out, or an admin, can check it in.'),
   },
 
   profiles: {
