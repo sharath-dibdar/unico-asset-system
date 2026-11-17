@@ -147,6 +147,63 @@ function AppInner() {
   const openDetail = a => { setSel(a); setView("detail"); };
   const closeModal = () => setModal(null);
 
+  // ─── Saving changes to existing rows ─────────────────────────────────────
+  // Screens update straight away; the database write follows. Each job is
+  // { save: () => Promise<{ok, error}>, undo: () => void }. Saves run together;
+  // every one that fails has its on-screen change undone, so the screen matches
+  // what was actually stored, and the user is told. Returns an ok flag per job.
+  async function persist(what, jobs) {
+    if (!jobs.length) return [];
+    const results = await Promise.all(jobs.map(j => j.save().catch(e => ({ ok:false, error:e.message }))));
+    const failed = results.filter(r => !r?.ok);
+    jobs.forEach((j, i) => { if (!results[i]?.ok) j.undo(); });
+    if (failed.length) {
+      const n = jobs.length > 1 ? `${failed.length} of ${jobs.length} changes were` : "the change was";
+      alert(`Couldn't save ${what} — ${n} not stored and ${failed.length > 1 ? "have" : "has"} been undone.\n\n${failed[0]?.error || "Unknown error"}`);
+    }
+    return results.map(r => !!r?.ok);
+  }
+  const undoAsset       = old => () => { setAssets(p => p.map(a => a.id === old.id ? old : a)); setSel(s => s?.id === old.id ? old : s); };
+  const undoWorkstation = old => () => setWorkstations(p => p.map(w => w.id === old.id ? old : w));
+  const undoCheckout    = old => () => setCheckouts(p => p.map(c => c.id === old.id ? old : c));
+  const dropCheckout    = co  => () => setCheckouts(p => p.filter(c => c.id !== co.id));
+
+  // Check-out of items [{ asset, updated, co }]: each asset is saved first and
+  // its checkout record is only created once the asset is really marked in use.
+  // `extra` jobs (e.g. the workstation) are saved alongside the assets.
+  async function persistCheckouts(items, extra = []) {
+    const oks = await persist("the check-out", [
+      ...items.map(it => ({ save: () => db.assets.update(it.updated), undo: () => { undoAsset(it.asset)(); dropCheckout(it.co)(); } })),
+      ...extra,
+    ]);
+    const saved = items.filter((_, i) => oks[i]);
+    await persist("the check-out records", saved.map(it => ({ save: () => db.checkouts.insert(it.co, me?.auth_id), undo: dropCheckout(it.co) })));
+  }
+
+  // The check-in counterpart for open checkouts.
+  function returnItems(openCheckouts, returnData, now) {
+    return openCheckouts.map(co => {
+      const asset = assets.find(a => a.id === co.assetId);
+      return {
+        co, updatedCo: { ...co, ...returnData, status:"returned" },
+        asset, updated: asset && { ...asset, status:"active", history:[...(asset.history||[]), { timestamp:now, action:"checked_in", changes:[] }] },
+      };
+    });
+  }
+
+  // Check-in of items from returnItems(): each checkout is closed first (only
+  // its owner or an admin may do that) and its asset is only marked available
+  // once that worked. Returns true if every checkout was closed.
+  async function persistReturns(items) {
+    const oks = await persist("the check-in", items.map(it => ({
+      save: () => db.checkouts.update(it.updatedCo),
+      undo: () => { undoCheckout(it.co)(); if (it.asset) undoAsset(it.asset)(); },
+    })));
+    const closed = items.filter((it, i) => oks[i] && it.asset);
+    await persist("the returned assets", closed.map(it => ({ save: () => db.assets.update(it.updated), undo: undoAsset(it.asset) })));
+    return oks.every(Boolean);
+  }
+
   // ─── Asset CRUD ──────────────────────────────────────────────────────────
   function openAdd(a = null) {
     setEditId(a?.id || null);
@@ -203,7 +260,8 @@ function AppInner() {
     // insert because this account isn't recognised as an admin in the DB),
     // roll back the optimistic UI change so the screen matches reality
     // instead of showing an asset that silently disappears on refresh.
-    const { ok, error } = await db.assets.upsert(saved);
+    // Edits go through update: an upsert would hit the admin-only INSERT policy.
+    const { ok, error } = editId ? await db.assets.update(saved) : await db.assets.upsert(saved);
     if (!ok) {
       if (editId) {
         const old = assets.find(a => a.id === editId);
@@ -228,7 +286,7 @@ function AppInner() {
     for (const a of targets) {
       try {
         const stored = await externalizeAttachments(a);
-        const { ok, error } = await db.assets.upsert(stored);
+        const { ok, error } = await db.assets.update(stored);
         if (!ok) throw new Error(error || "database write failed");
         setAssets(p => p.map(x => x.id === a.id ? stored : x));
         setSel(s => s?.id === a.id ? stored : s);
@@ -249,9 +307,11 @@ function AppInner() {
   }
 
   async function updateAsset(updated) {
+    const old = assets.find(a => a.id === updated.id);
+    if (!old) return;
     setAssets(p => p.map(a => a.id === updated.id ? updated : a));
     if (sel?.id === updated.id) setSel(updated);
-    await db.assets.upsert(updated);
+    await persist("this change", [{ save: () => db.assets.update(updated), undo: undoAsset(old) }]);
   }
 
   // ─── Checkout ────────────────────────────────────────────────────────────
@@ -265,24 +325,20 @@ function AppInner() {
     setAssets(p => p.map(a => a.id === asset.id ? updated : a));
     if (sel?.id === asset.id) setSel(updated);
     closeModal();
-    await db.checkouts.insert(co, me?.auth_id);
-    await db.assets.upsert(updated);
+    await persistCheckouts([{ asset, updated, co }]);
   }
 
   async function doReturn(checkoutId, returnData) {
     const co = checkouts.find(c => c.id === checkoutId);
-    const updatedCo = { ...co, ...returnData, status:"returned" };
-    setCheckouts(p => p.map(c => c.id === checkoutId ? updatedCo : c));
-    const asset = co ? assets.find(a => a.id === co.assetId) : null;
-    if (asset) {
-      const now = new Date().toISOString();
-      const updated = { ...asset, status:"active", history:[...(asset.history||[]), { timestamp:now, action:"checked_in", changes:[] }] };
-      setAssets(p => p.map(a => a.id === asset.id ? updated : a));
-      if (sel?.id === asset.id) setSel(updated);
-      await db.assets.upsert(updated);
+    if (!co) return;
+    const [item] = returnItems([co], returnData, new Date().toISOString());
+    setCheckouts(p => p.map(c => c.id === checkoutId ? item.updatedCo : c));
+    if (item.asset) {
+      setAssets(p => p.map(a => a.id === item.asset.id ? item.updated : a));
+      if (sel?.id === item.asset.id) setSel(item.updated);
     }
     closeModal();
-    await db.checkouts.update(updatedCo);
+    await persistReturns([item]);
   }
 
   // ─── Disposal ────────────────────────────────────────────────────────────
@@ -295,7 +351,7 @@ function AppInner() {
     closeModal();
     setView("list");
     setSel(null);
-    await db.assets.upsert(updated);
+    await persist("the disposal", [{ save: () => db.assets.update(updated), undo: undoAsset(asset) }]);
   }
 
   // ─── Vendors ─────────────────────────────────────────────────────────────
@@ -353,11 +409,20 @@ function AppInner() {
     }));
     closeModal();
 
-    await db.workstations.upsert(saved);
-    await Promise.all([
-      ...removedIds.map(id => db.assets.upsert({ ...assets.find(a => a.id === id), workstationId:null })),
-      ...addedIds.map(id => db.assets.upsert({ ...assets.find(a => a.id === id), workstationId:saved.id })),
-    ]);
+    // Linked assets as they were, and as they should be after this save.
+    const relinks = [...removedIds.map(id => [id, null]), ...addedIds.map(id => [id, saved.id])]
+      .map(([id, workstationId]) => { const a = assets.find(x => x.id === id); return a && { old:a, next:{ ...a, workstationId } }; })
+      .filter(Boolean);
+
+    // New workstations are inserted (admin only); existing ones are updated.
+    const [wsOk] = await persist("the workstation", [{
+      save: () => old ? db.workstations.update(saved) : db.workstations.upsert(saved),
+      undo: () => {
+        if (old) undoWorkstation(old)(); else setWorkstations(p => p.filter(w => w.id !== saved.id));
+        relinks.forEach(r => undoAsset(r.old)());
+      },
+    }]);
+    if (wsOk) await persist("the workstation's asset links", relinks.map(r => ({ save: () => db.assets.update(r.next), undo: undoAsset(r.old) })));
   }
 
   async function deleteWorkstation(id) {
@@ -365,58 +430,41 @@ function AppInner() {
     setWorkstations(p => p.filter(w => w.id !== id));
     setAssets(p => p.map(a => ws?.assetIds.includes(a.id) ? { ...a, workstationId:null } : a));
     await db.workstations.delete(id);
-    if (ws) await Promise.all(ws.assetIds.map(aid => db.assets.upsert({ ...assets.find(a => a.id === aid), workstationId:null })));
+    const linked = ws ? assets.filter(a => ws.assetIds.includes(a.id)) : [];
+    await persist("the unlinked assets", linked.map(a => ({ save: () => db.assets.update({ ...a, workstationId:null }), undo: undoAsset(a) })));
   }
 
   async function doWorkstationCheckout(workstation, formData) {
     const now = new Date().toISOString();
     const checkoutDate = now.split("T")[0];
-    const newCheckouts = [];
-    const updatedAssets = [];
-
-    for (const assetId of workstation.assetIds) {
-      const asset = assets.find(a => a.id === assetId);
-      if (!asset) continue;
-      const co = { id:uid(), assetId, assignedTo:formData.assignedTo, purpose:formData.purpose, location:formData.location, expectedReturn:formData.expectedReturn, notes:formData.notes, assetCode:asset.code, assetName:asset.name, checkoutDate, status:"out", workstationId:workstation.id };
-      newCheckouts.push(co);
-      updatedAssets.push({ ...asset, status:"in_use", assignTo:formData.assignedTo, history:[...(asset.history||[]), { timestamp:now, action:"checked_out", changes:[{field:"assignedTo",old:asset.assignTo,new:formData.assignedTo}] }] });
-    }
-
+    const items = workstation.assetIds.map(id => assets.find(a => a.id === id)).filter(Boolean).map(asset => ({
+      asset,
+      updated: { ...asset, status:"in_use", assignTo:formData.assignedTo, history:[...(asset.history||[]), { timestamp:now, action:"checked_out", changes:[{field:"assignedTo",old:asset.assignTo,new:formData.assignedTo}] }] },
+      co: { id:uid(), assetId:asset.id, assignedTo:formData.assignedTo, purpose:formData.purpose, location:formData.location, expectedReturn:formData.expectedReturn, notes:formData.notes, assetCode:asset.code, assetName:asset.name, checkoutDate, status:"out", workstationId:workstation.id },
+    }));
     const updatedWs = { ...workstation, assignTo:formData.assignedTo, status:"in_use" };
 
-    setCheckouts(p => [...p, ...newCheckouts]);
-    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
+    setCheckouts(p => [...p, ...items.map(it => it.co)]);
+    setAssets(p => p.map(a => items.find(it => it.asset.id === a.id)?.updated || a));
     setWorkstations(p => p.map(w => w.id === workstation.id ? updatedWs : w));
     closeModal();
 
-    await Promise.all([
-      ...newCheckouts.map(co => db.checkouts.insert(co, me?.auth_id)),
-      ...updatedAssets.map(a => db.assets.upsert(a)),
-      db.workstations.upsert(updatedWs),
-    ]);
+    await persistCheckouts(items, [{ save: () => db.workstations.update(updatedWs), undo: undoWorkstation(workstation) }]);
   }
 
   async function doWorkstationReturn(workstation, returnData) {
     const now = new Date().toISOString();
-    const openCheckouts = checkouts.filter(c => c.workstationId === workstation.id && c.status === "out");
-    const updatedCheckouts = openCheckouts.map(c => ({ ...c, ...returnData, status:"returned" }));
-    const updatedAssets = openCheckouts
-      .map(c => assets.find(a => a.id === c.assetId))
-      .filter(Boolean)
-      .map(a => ({ ...a, status:"active", history:[...(a.history||[]), { timestamp:now, action:"checked_in", changes:[] }] }));
-
+    const items = returnItems(checkouts.filter(c => c.workstationId === workstation.id && c.status === "out"), returnData, now);
     const updatedWs = { ...workstation, assignTo:"", status:"active" };
 
-    setCheckouts(p => p.map(c => updatedCheckouts.find(u => u.id === c.id) || c));
-    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
+    setCheckouts(p => p.map(c => items.find(it => it.co.id === c.id)?.updatedCo || c));
+    setAssets(p => p.map(a => items.find(it => it.asset?.id === a.id)?.updated || a));
     setWorkstations(p => p.map(w => w.id === workstation.id ? updatedWs : w));
     closeModal();
 
-    await Promise.all([
-      ...updatedCheckouts.map(co => db.checkouts.update(co)),
-      ...updatedAssets.map(a => db.assets.upsert(a)),
-      db.workstations.upsert(updatedWs),
-    ]);
+    // The workstation is only freed once every one of its checkouts is closed.
+    if (await persistReturns(items)) await persist("the workstation", [{ save: () => db.workstations.update(updatedWs), undo: undoWorkstation(workstation) }]);
+    else undoWorkstation(workstation)();
   }
 
   // ─── Ad-hoc bulk checkout/check-in (cart scan, not tied to a workstation) ──
@@ -424,43 +472,27 @@ function AppInner() {
     const now = new Date().toISOString();
     const checkoutDate = now.split("T")[0];
     const batchId = uid();
-    const newCheckouts = [];
-    const updatedAssets = [];
+    const items = assetIds.map(id => assets.find(a => a.id === id)).filter(Boolean).map(asset => ({
+      asset,
+      updated: { ...asset, status:"in_use", assignTo:formData.assignedTo, history:[...(asset.history||[]), { timestamp:now, action:"checked_out", changes:[{field:"assignedTo",old:asset.assignTo,new:formData.assignedTo}] }] },
+      co: { id:uid(), assetId:asset.id, assignedTo:formData.assignedTo, purpose:formData.purpose, location:formData.location, expectedReturn:formData.expectedReturn, notes:formData.notes, assetCode:asset.code, assetName:asset.name, checkoutDate, status:"out", batchId },
+    }));
 
-    for (const assetId of assetIds) {
-      const asset = assets.find(a => a.id === assetId);
-      if (!asset) continue;
-      const co = { id:uid(), assetId, assignedTo:formData.assignedTo, purpose:formData.purpose, location:formData.location, expectedReturn:formData.expectedReturn, notes:formData.notes, assetCode:asset.code, assetName:asset.name, checkoutDate, status:"out", batchId };
-      newCheckouts.push(co);
-      updatedAssets.push({ ...asset, status:"in_use", assignTo:formData.assignedTo, history:[...(asset.history||[]), { timestamp:now, action:"checked_out", changes:[{field:"assignedTo",old:asset.assignTo,new:formData.assignedTo}] }] });
-    }
+    setCheckouts(p => [...p, ...items.map(it => it.co)]);
+    setAssets(p => p.map(a => items.find(it => it.asset.id === a.id)?.updated || a));
 
-    setCheckouts(p => [...p, ...newCheckouts]);
-    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
-
-    await Promise.all([
-      ...newCheckouts.map(co => db.checkouts.insert(co, me?.auth_id)),
-      ...updatedAssets.map(a => db.assets.upsert(a)),
-    ]);
+    await persistCheckouts(items);
     return batchId;
   }
 
   async function doBulkReturn(checkoutIds, returnData) {
     const now = new Date().toISOString();
-    const targets = checkouts.filter(c => checkoutIds.includes(c.id) && c.status === "out");
-    const updatedCheckouts = targets.map(c => ({ ...c, ...returnData, status:"returned" }));
-    const updatedAssets = targets
-      .map(c => assets.find(a => a.id === c.assetId))
-      .filter(Boolean)
-      .map(a => ({ ...a, status:"active", history:[...(a.history||[]), { timestamp:now, action:"checked_in", changes:[] }] }));
+    const items = returnItems(checkouts.filter(c => checkoutIds.includes(c.id) && c.status === "out"), returnData, now);
 
-    setCheckouts(p => p.map(c => updatedCheckouts.find(u => u.id === c.id) || c));
-    setAssets(p => p.map(a => updatedAssets.find(u => u.id === a.id) || a));
+    setCheckouts(p => p.map(c => items.find(it => it.co.id === c.id)?.updatedCo || c));
+    setAssets(p => p.map(a => items.find(it => it.asset?.id === a.id)?.updated || a));
 
-    await Promise.all([
-      ...updatedCheckouts.map(co => db.checkouts.update(co)),
-      ...updatedAssets.map(a => db.assets.upsert(a)),
-    ]);
+    await persistReturns(items);
   }
 
   function returnBatch(groupKey) {
