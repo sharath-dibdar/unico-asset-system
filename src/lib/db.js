@@ -79,13 +79,10 @@ export const db = {
     // Save changes to an EXISTING audit. Use this rather than upsert: Postgres
     // applies the INSERT policy (admin-only) to an upsert even when the row
     // exists, so a non-admin's upsert is rejected while a plain UPDATE is allowed.
-    update: async (a) => {
-      const data = { ...a };
+    update: (a) => {
+      const data = { ...a }; // reportSentAt/reportRecipients are column-backed, not part of the JSON
       delete data.reportSentAt; delete data.reportRecipients;
-      const { data: hit, error } = await supabase.from('audits').update({ data }).eq('id', a.id).select('id');
-      const msg = error?.message || (!hit?.length ? 'Audit not found, or you are not allowed to change it.' : null);
-      if (msg) console.warn('[db/audits update]', msg);
-      return { ok: !msg, error: msg || undefined };
+      return updateRow('audits', a.id, { data }, 'Audit not found, or you are not allowed to change it.');
     },
     delete: async (id) => {
       const { error } = await supabase.from('audits').delete().eq('id', id);
