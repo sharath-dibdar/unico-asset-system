@@ -7,8 +7,8 @@ import { Badge, Btn, Label, Modal, Section } from "../components/UI.jsx";
 // ── Add / Edit user modal ────────────────────────────────────────────────────
 function UserModal({ existing, onSave, onClose, busy }) {
   const [form, setForm] = useState(existing
-    ? { name: existing.name, email: existing.email, role: existing.role }
-    : { name: "", email: "", role: "user" });
+    ? { name: existing.name, email: existing.email, role: existing.role, audit_approver: !!existing.audit_approver }
+    : { name: "", email: "", role: "user", audit_approver: false });
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const valid = form.name.trim() && form.email.trim();
 
@@ -34,6 +34,15 @@ function UserModal({ existing, onSave, onClose, busy }) {
             <option value="admin">Admin — full access + user management</option>
           </select>
         </div>
+        <label style={{ display:"flex", gap:10, alignItems:"flex-start", cursor:"pointer", padding:"10px 12px", border:`1px solid ${form.audit_approver ? C.ac : C.br}`, background:form.audit_approver ? `${C.ac}10` : "#fff", borderRadius:10 }}>
+          <input type="checkbox" checked={form.audit_approver} onChange={e => set("audit_approver", e.target.checked)} style={{ marginTop:2 }} />
+          <span>
+            <span style={{ fontSize:13, fontWeight:600 }}>Audit approver</span>
+            <span style={{ display:"block", fontSize:12, color:C.mu, marginTop:2 }}>
+              Must sign off every physical audit. An audit is only completed, and its report emailed to everyone, once all approvers have signed.
+            </span>
+          </span>
+        </label>
         {!existing && (
           <div style={{ background:`${C.ac}10`, border:`1px solid ${C.ac}25`, borderRadius:10, padding:"10px 14px", fontSize:12, color:C.mu }}>
             The user will log in via email OTP — no password needed. They can sign in as soon as you save this.
@@ -196,6 +205,7 @@ export default function UserAdmin({ inlineFileAssets = 0, onMigrateAttachments }
                       <span style={{ fontSize:13, fontWeight:600 }}>{u.name}</span>
                       {isMe && <Badge color={C.ok}>You</Badge>}
                       <Badge color={u.role === "admin" ?C.acD:C.mu}>{u.role}</Badge>
+                      {u.audit_approver && <Badge color={C.ok}>Audit approver</Badge>}
                       {!u.active && <Badge color={C.err}>Inactive</Badge>}
                       {userSessions > 0 && <Badge color={C.ok}>{userSessions} active</Badge>}
                     </div>

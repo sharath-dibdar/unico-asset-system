@@ -43,15 +43,66 @@ export const db = {
   },
 
   audits: {
-    load: async () => rows(await supabase.from('audits').select('data').order('created_at')),
+    // report_sent_at / report_recipients are columns written by the
+    // send-audit-report Edge Function; they're merged onto each audit object.
+    // Falls back to data-only if migration 005 hasn't been run yet.
+    load: async () => {
+      const res = await supabase.from('audits').select('data, report_sent_at, report_recipients').order('created_at');
+      if (res.error) return rows(await supabase.from('audits').select('data').order('created_at'));
+      return (res.data || []).map(r => ({ ...r.data, reportSentAt: r.report_sent_at, reportRecipients: r.report_recipients }));
+    },
+    get: async (id) => {
+      const { data, error } = await supabase.from('audits').select('data, report_sent_at, report_recipients').eq('id', id).maybeSingle();
+      if (error || !data) { if (error) console.warn('[db/audits get]', error.message); return null; }
+      return { ...data.data, reportSentAt: data.report_sent_at, reportRecipients: data.report_recipients };
+    },
     upsert: async (a) => {
-      const { error } = await supabase.from('audits').upsert({ id: a.id, data: a }, { onConflict: 'id' });
+      const data = { ...a }; // reportSentAt/reportRecipients are column-backed, not part of the JSON
+      delete data.reportSentAt; delete data.reportRecipients;
+      const { error } = await supabase.from('audits').upsert({ id: a.id, data }, { onConflict: 'id' });
       if (error) console.warn('[db/audits upsert]', error.message);
+      return { ok: !error, error: error?.message };
+    },
+    // Save changes to an EXISTING audit. Use this rather than upsert: Postgres
+    // applies the INSERT policy (admin-only) to an upsert even when the row
+    // exists, so a non-admin's upsert is rejected while a plain UPDATE is allowed.
+    update: async (a) => {
+      const data = { ...a };
+      delete data.reportSentAt; delete data.reportRecipients;
+      const { data: hit, error } = await supabase.from('audits').update({ data }).eq('id', a.id).select('id');
+      const msg = error?.message || (!hit?.length ? 'Audit not found, or you are not allowed to change it.' : null);
+      if (msg) console.warn('[db/audits update]', msg);
+      return { ok: !msg, error: msg || undefined };
     },
     delete: async (id) => {
       const { error } = await supabase.from('audits').delete().eq('id', id);
       if (error) console.warn('[db/audits delete]', error.message);
     },
+  },
+
+  auditSignoffs: {
+    load: async () => {
+      const { data, error } = await supabase.from('audit_signoffs').select('audit_id, profile_id, signed_at').order('signed_at');
+      if (error) { console.warn('[db/auditSignoffs load]', error.message); return []; }
+      return data || [];
+    },
+    sign: async (auditId, profileId) => {
+      const { error } = await supabase.from('audit_signoffs').insert({ audit_id: auditId, profile_id: profileId });
+      if (error) console.warn('[db/auditSignoffs sign]', error.message);
+      return { ok: !error, error: error?.message };
+    },
+  },
+
+  // Emails the signed-off audit's report to all active users (Edge Function).
+  sendAuditReport: async (auditId, resend = false) => {
+    const { data, error } = await supabase.functions.invoke('send-audit-report', { body: { auditId, resend } });
+    if (error) {
+      let detail = error.message;
+      try { const b = await error.context?.json?.(); detail = b?.message || b?.error || detail; } catch { /* non-JSON body */ }
+      console.warn('[db/sendAuditReport]', detail);
+      return { ok: false, error: detail };
+    }
+    return { ok: true, ...data };
   },
 
   workstations: {

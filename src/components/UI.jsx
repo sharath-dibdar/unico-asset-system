@@ -3,7 +3,12 @@ import { C, ST_CFG } from "../constants.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { ChevronRight, Package } from "lucide-react";
 
-export const Badge = ({ s }) => {
+// <Badge s="in_use" /> for an asset status, or <Badge color={C.ok}>Any label</Badge>.
+export const Badge = ({ s, color, children }) => {
+  if (children !== undefined) {
+    const c = color || C.mu;
+    return <span style={{ background:`${c}18`, color:c, padding:"3px 11px", borderRadius:20, fontSize:11, fontWeight:700, letterSpacing:"0.04em", whiteSpace:"nowrap" }}>{children}</span>;
+  }
   const cfg = ST_CFG[s]||ST_CFG.active;
   return <span style={{ background:cfg.bg, color:cfg.c, padding:"3px 11px", borderRadius:20, fontSize:11, fontWeight:700, letterSpacing:"0.04em", whiteSpace:"nowrap" }}>{cfg.l}</span>;
 };

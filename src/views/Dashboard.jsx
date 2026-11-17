@@ -13,7 +13,7 @@ export default function Dashboard({ assets, vendors, audits, checkouts, openDeta
   const checkedOut  = (checkouts||[]).filter(c=>c.status==="out").length;
   const disposed    = assets.filter(a=>a.disposal).length;
   const disposalVal = assets.filter(a=>a.disposal?.saleValue).reduce((s,a)=>s+(a.disposal.saleValue||0),0);
-  const pendingAudits = (audits||[]).filter(a=>a.status==="pending"||a.status==="in_progress").length;
+  const pendingAudits = (audits||[]).filter(a=>a.status==="pending"||a.status==="in_progress"||a.status==="awaiting_signoff").length;
   const depPct = totalV>0 ? Math.round((1-totalBV/totalV)*100) : 0;
 
   const catBar = Object.entries(CATS).map(([k,v])=>({

@@ -69,6 +69,9 @@ export function CreateAuditModal({ assets, onSave, onClose }) {
 }
 
 export function AuditRunModal({ audit, assets, onComplete, onClose }) {
+  // Results are locked once submitted for sign-off (and final once completed);
+  // the database enforces this too. Reopening is an admin action on the audit page.
+  const readOnly = audit.status === "awaiting_signoff" || audit.status === "completed";
   const [checks, setChecks] = useState(audit.checklist.map(c=>({...c})));
   const [idx, setIdx]       = useState(() => {
     const first = audit.checklist.findIndex(c=>c.found===null);
@@ -135,22 +138,22 @@ export function AuditRunModal({ audit, assets, onComplete, onClose }) {
           <div>
             <Label>Is this asset present?</Label>
             <div style={{ display:"flex", gap:12, marginTop:8 }}>
-              <button onClick={()=>markFound(true)} style={{
+              <button onClick={()=>markFound(true)} disabled={readOnly} style={{
                 flex:1, padding:"12px", borderRadius:10, border:`2px solid ${item.found===true?C.ok:C.br}`,
                 background:item.found===true?`${C.ok}18`:"transparent", color:item.found===true?C.ok:C.mu,
-                cursor:"pointer", fontWeight:700, fontSize:15, fontFamily:"'Inter',sans-serif"
+                cursor:readOnly?"default":"pointer", fontWeight:700, fontSize:15, fontFamily:"'Inter',sans-serif"
               }}>✓ Found</button>
-              <button onClick={()=>markFound(false)} style={{
+              <button onClick={()=>markFound(false)} disabled={readOnly} style={{
                 flex:1, padding:"12px", borderRadius:10, border:`2px solid ${item.found===false?C.err:C.br}`,
                 background:item.found===false?`${C.err}18`:"transparent", color:item.found===false?C.err:C.mu,
-                cursor:"pointer", fontWeight:700, fontSize:15, fontFamily:"'Inter',sans-serif"
+                cursor:readOnly?"default":"pointer", fontWeight:700, fontSize:15, fontFamily:"'Inter',sans-serif"
               }}>✗ Not Found</button>
             </div>
           </div>
 
           {item.found===true && (
             <div><Label>Condition</Label>
-              <select value={item.condition||""} onChange={e=>update("condition",e.target.value)}>
+              <select disabled={readOnly} value={item.condition||""} onChange={e=>update("condition",e.target.value)}>
                 <option value="">Select condition…</option>
                 {["Excellent","Good","Fair","Poor","Damaged"].map(c=><option key={c}>{c}</option>)}
               </select>
@@ -158,7 +161,7 @@ export function AuditRunModal({ audit, assets, onComplete, onClose }) {
           )}
 
           <div><Label>Notes (optional)</Label>
-            <textarea value={item.notes||""} onChange={e=>update("notes",e.target.value)} rows={2} style={{ resize:"vertical" }} placeholder="Observations, discrepancies, damage…" />
+            <textarea disabled={readOnly} value={item.notes||""} onChange={e=>update("notes",e.target.value)} rows={2} style={{ resize:"vertical" }} placeholder="Observations, discrepancies, damage…" />
           </div>
         </div>
 
@@ -168,14 +171,16 @@ export function AuditRunModal({ audit, assets, onComplete, onClose }) {
             {idx>0 && <Btn onClick={()=>setIdx(i=>i-1)} variant="secondary" style={{ fontSize:12, padding:"7px 14px" }}>← Prev</Btn>}
           </div>
           <div style={{ display:"flex", gap:8 }}>
-            {!allDone && idx<checks.length-1 && (
+            {!readOnly && !allDone && idx<checks.length-1 && (
               <Btn onClick={saveAndNext} variant="secondary" style={{ fontSize:12, padding:"7px 14px" }}>Skip →</Btn>
             )}
-            {idx<checks.length-1 && item.found!==null && (
+            {idx<checks.length-1 && (readOnly || item.found!==null) && (
               <Btn onClick={saveAndNext} variant="primary" style={{ fontSize:12, padding:"7px 14px" }}>Next →</Btn>
             )}
-            {(allDone||(idx===checks.length-1&&item.found!==null)) && (
-              <Btn onClick={complete} variant="success">Complete Audit ✓</Btn>
+            {readOnly ? (
+              <Btn onClick={onClose} variant="secondary" style={{ fontSize:12, padding:"7px 14px" }}>Close</Btn>
+            ) : (allDone||(idx===checks.length-1&&item.found!==null)) && (
+              <Btn onClick={complete} variant="success">Submit for sign-off ✓</Btn>
             )}
           </div>
         </div>

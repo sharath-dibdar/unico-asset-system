@@ -15,7 +15,7 @@ export function Sidebar({ view, setView, assets, vendors, audits, onAdd, onImpor
   const expiring     = assets.filter(a => { const d = dTo(a.wEnd); return d !== null && d >= 0 && d <= 90; }).length;
   const insExpiring  = assets.filter(a => { const d = dTo(a.insurance?.renewalDate); return d !== null && d >= 0 && d <= 90; }).length;
   const checkedOut   = assets.filter(a => a.status === "in_use").length;
-  const pendingAudits = (audits || []).filter(a => a.status === "pending" || a.status === "in_progress").length;
+  const pendingAudits = (audits || []).filter(a => a.status === "pending" || a.status === "in_progress" || a.status === "awaiting_signoff").length;
 
   const navItem = (id, icon, label, badge) => (
     <button key={id} onClick={() => setView(id)} style={{
@@ -189,7 +189,7 @@ export function BottomNav({ view, setView, assets, audits, onScan, onImport, onP
   const { me, isAdmin, logout } = useAuth();
   const [more, setMore] = useState(false);
   const checkedOut    = (assets || []).filter(a => a.status === "in_use").length;
-  const pendingAudits = (audits || []).filter(a => a.status === "pending" || a.status === "in_progress").length;
+  const pendingAudits = (audits || []).filter(a => a.status === "pending" || a.status === "in_progress" || a.status === "awaiting_signoff").length;
   const inMore = ["workstations","audits","audit","vendors","reports","useradmin"].includes(view);
 
   const tab = (id, icon, label, badge, active = view === id) => (

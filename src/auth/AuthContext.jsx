@@ -225,6 +225,7 @@ export function AuthProvider({ children }) {
       role:       data.role,
       active:     true,
       created_by: me?.id ?? null,
+      ...(data.audit_approver && users.some(u => "audit_approver" in u) && { audit_approver: true }),
     };
     const ok = await db.profiles.insert(row);
     if (ok) await loadAdminData();
@@ -237,6 +238,7 @@ export function AuthProvider({ children }) {
       name:   rest.name,
       role:   rest.role,
       active: rest.active,
+      ...(rest.audit_approver !== undefined && "audit_approver" in (users.find(u => u.id === id) || {}) && { audit_approver: !!rest.audit_approver }),
     });
     setUsers(p => p.map(u => u.id === id ? { ...u, ...rest } : u));
     if (me?.id === id) setMe(prev => ({ ...prev, ...rest }));

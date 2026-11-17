@@ -38,7 +38,7 @@ function GlobalStyles() {
       select{cursor:pointer;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
       input::placeholder,textarea::placeholder{color:#B4BAC6;}
       input:focus,select:focus,textarea:focus{border-color:${C.ac};box-shadow:0 0 0 3px rgba(255,210,0,0.25);}
-      input[type="checkbox"],input[type="radio"]{width:auto;accent-color:${C.ac};cursor:pointer;}
+      input[type="checkbox"],input[type="radio"]{-webkit-appearance:auto;appearance:auto;width:16px;height:16px;padding:0;border:none;border-radius:0;box-shadow:none;accent-color:${C.ac};cursor:pointer;flex-shrink:0;}
       select option{background:#fff;color:${C.tx};}
       ::-webkit-scrollbar{width:10px;height:10px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#D5DAE3;border-radius:8px;border:2px solid transparent;background-clip:padding-box;}::-webkit-scrollbar-thumb:hover{background:#C2C8D4;background-clip:padding-box;}
       @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
@@ -96,6 +96,7 @@ function AppInner() {
   const [assets,       setAssets]       = useState([]);
   const [vendors,      setVendors]      = useState([]);
   const [audits,       setAudits]       = useState([]);
+  const [signoffs,     setSignoffs]     = useState([]); // audit_signoffs rows
   const [checkouts,    setCheckouts]    = useState([]);
   const [workstations, setWorkstations] = useState([]);
   const [loaded,       setLoaded]       = useState(false);
@@ -122,16 +123,18 @@ function AppInner() {
   // ─── Load all data from Supabase ─────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoaded(false);
-    const [a, v, au, co, ws] = await Promise.all([
+    const [a, v, au, co, ws, so] = await Promise.all([
       db.assets.load(),
       db.vendors.load(),
       db.audits.load(),
       db.checkouts.load(),
       db.workstations.load(),
+      db.auditSignoffs.load(),
     ]);
     setAssets(a.map(migrateAsset));
     setVendors(v);
     setAudits(au);
+    setSignoffs(so);
     setCheckouts(co);
     setWorkstations(ws);
     setLoaded(true);
@@ -317,19 +320,69 @@ function AppInner() {
     await db.audits.upsert(a);
   }
 
-  function startAudit(a) {
+  async function startAudit(a) {
     const updated = { ...a, status:"in_progress" };
     setAudits(p => p.map(x => x.id === a.id ? updated : x));
-    db.audits.upsert(updated);
+    const { ok, error } = await db.audits.update(updated);
+    if (!ok) {
+      setAudits(p => p.map(x => x.id === a.id ? a : x));
+      alert(`Couldn't start this audit.\n\n${error || "Unknown error"}`);
+    }
   }
 
   function runAudit(a) { setModal({ type:"runAudit", data:a }); }
 
-  async function completeAudit(auditId, checks) {
-    const updated = { ...audits.find(a => a.id === auditId), checklist:checks, status:"completed", completedAt:new Date().toISOString() };
+  // Finishing the checklist submits it for sign-off; the audit only becomes
+  // "completed" when every approver has signed (enforced in the database).
+  async function submitAuditForSignoff(auditId, checks) {
+    const prev = audits.find(a => a.id === auditId);
+    const updated = { ...prev, checklist:checks, status:"awaiting_signoff", submittedAt:new Date().toISOString(), submittedBy:me?.name || "", completedAt:null };
     setAudits(p => p.map(a => a.id === auditId ? updated : a));
     closeModal();
-    await db.audits.upsert(updated);
+    const { ok, error } = await db.audits.update(updated);
+    if (!ok) {
+      setAudits(p => p.map(a => a.id === auditId ? prev : a));
+      alert(`Couldn't submit this audit for sign-off.\n\n${error || "Unknown error"}`);
+    }
+  }
+
+  async function refreshAudit(auditId) {
+    const [fresh, so] = await Promise.all([db.audits.get(auditId), db.auditSignoffs.load()]);
+    if (fresh) setAudits(p => p.map(a => a.id === auditId ? fresh : a));
+    setSignoffs(so);
+    return fresh;
+  }
+
+  async function sendAuditReport(auditId, resend = false) {
+    const res = await db.sendAuditReport(auditId, resend);
+    await refreshAudit(auditId);
+    return res;
+  }
+
+  async function signAudit(audit) {
+    if (!me) return;
+    if (!confirm(`Sign off "${audit.name}" as ${me.name}?\n\nYou're confirming you've reviewed these audit results. This can't be undone.`)) return;
+    const { ok, error } = await db.auditSignoffs.sign(audit.id, me.id);
+    if (!ok) {
+      alert(`Couldn't record your sign-off.\n\n${error || "Unknown error"}`);
+      await refreshAudit(audit.id);
+      return;
+    }
+    // If yours was the last signature, the database has just completed the
+    // audit — send the report to everyone.
+    const fresh = await refreshAudit(audit.id);
+    if (fresh?.status === "completed" && !fresh.reportSentAt) {
+      const res = await sendAuditReport(audit.id);
+      if (!res.ok) alert(`The audit is signed off and completed, but the report email couldn't be sent.\n\n${res.error}\n\nAn admin can send it from the audit page.`);
+    }
+  }
+
+  async function reopenAudit(audit) {
+    if (!confirm(`Reopen "${audit.name}" for changes?\n\nAll sign-offs collected so far will be cleared and the corrected results will need to be signed again.`)) return;
+    const updated = { ...audit, status:"in_progress", submittedAt:null, submittedBy:null };
+    const { ok, error } = await db.audits.update(updated);
+    if (!ok) alert(`Couldn't reopen this audit.\n\n${error || "Unknown error"}`);
+    await refreshAudit(audit.id);
   }
 
   async function deleteAudit(id) {
@@ -528,7 +581,7 @@ function AppInner() {
           {view==="list"       && <AssetList filtered={filtered} q={q} setQ={setQ} catF={catF} setCatF={setCatF} stF={stF} setStF={setStF} tagF={tagF} setTagF={setTagF} allTags={allTags} openDetail={openDetail} isAdmin={isAdmin} />}
           {view==="detail" && sel && <AssetDetail asset={sel} isAdmin={isAdmin} onEdit={isAdmin?()=>openAdd(sel):null} onDelete={isAdmin?deleteAsset:null} onCheckout={a=>setModal({type:"checkout",data:{asset:a}})} onDispose={isAdmin?a=>setModal({type:"disposal",data:a}):null} onUpdate={updateAsset} onPrintLabel={isAdmin?a=>setModal({type:"printLabels",data:{ids:[a.id]}}):null} />}
           {view==="vendors"    && isAdmin && <Vendors vendors={vendors} assets={assets} onAdd={()=>setModal({type:"vendor"})} onEdit={v=>setModal({type:"vendor",data:v})} onDelete={deleteVendor} />}
-          {view==="audits"     && <Audits audits={audits} assets={assets} setView={setView} onCreateAudit={isAdmin?()=>setModal({type:"createAudit"}):null} onStartAudit={startAudit} onRunAudit={a=>setModal({type:"runAudit",data:a})} onDeleteAudit={isAdmin?deleteAudit:null} onUpdateAudit={a=>{ const u={...a}; setAudits(p=>p.map(x=>x.id===a.id?u:x)); db.audits.upsert(u); }} />}
+          {view==="audits"     && <Audits audits={audits} assets={assets} setView={setView} onCreateAudit={isAdmin?()=>setModal({type:"createAudit"}):null} onStartAudit={startAudit} onRunAudit={a=>setModal({type:"runAudit",data:a})} onDeleteAudit={isAdmin?deleteAudit:null} signoffs={signoffs} onSignAudit={signAudit} onReopenAudit={isAdmin?reopenAudit:null} onSendReport={isAdmin?sendAuditReport:null} />}
           {view==="reports"    && isAdmin && <Reports assets={assets} checkouts={checkouts} vendors={vendors} />}
           {view==="checkout"   && <Checkout checkouts={checkouts} assets={assets} onReturn={co=>setModal({type:"return",data:co})} onNewCheckout={()=>setModal({type:"checkout"})} onReturnBatch={returnBatch} />}
           {view==="workstations" && <Workstations workstations={workstations} assets={assets} isAdmin={isAdmin} onAdd={()=>setModal({type:"workstation"})} onEdit={w=>setModal({type:"workstation",data:w})} onDelete={deleteWorkstation} onCheckOut={w=>setModal({type:"workstationCheckout",data:w})} onCheckIn={w=>setModal({type:"workstationReturn",data:w})} />}
@@ -547,7 +600,7 @@ function AppInner() {
       {modal?.type==="bulkImport"  && <BulkImportModal assets={assets} onImport={doBulkImport} onClose={closeModal} />}
       {modal?.type==="vendor"      && <VendorModal vendor={modal.data} onSave={saveVendor} onClose={closeModal} />}
       {modal?.type==="createAudit" && <CreateAuditModal assets={assets} onSave={saveAudit} onClose={closeModal} />}
-      {modal?.type==="runAudit"    && liveAudit && <AuditRunModal audit={liveAudit} assets={assets} onComplete={checks=>completeAudit(liveAudit.id,checks)} onClose={closeModal} />}
+      {modal?.type==="runAudit"    && liveAudit && <AuditRunModal audit={liveAudit} assets={assets} onComplete={checks=>submitAuditForSignoff(liveAudit.id,checks)} onClose={closeModal} />}
       {modal?.type==="printLabels" && <PrintLabelsModal assets={assets} workstations={workstations} preselectIds={modal.data?.ids || []} onClose={closeModal} />}
       {modal?.type==="workstation"         && <WorkstationModal workstation={modal.data} assets={assets} onSave={saveWorkstation} onClose={closeModal} />}
       {modal?.type==="workstationCheckout" && <WorkstationCheckoutModal workstation={modal.data} assets={assets} onCheckout={formData=>doWorkstationCheckout(modal.data,formData)} onClose={closeModal} />}
