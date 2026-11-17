@@ -44,6 +44,27 @@ export function findAssetByScan(assets, raw) {
       || null;
 }
 
+// Fallback for labels the camera can't read (warped, scratched, faded): find
+// assets by name, code, make, model, serial, vendor or tag. Every word typed
+// must appear somewhere, so "dell 24" finds "Dell P2422H Monitor".
+export function searchAssets(assets, raw, limit = 8) {
+  const words = String(raw || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const scored = [];
+  for (const a of assets) {
+    const name = (a.name || "").toLowerCase();
+    const hay = [a.name, a.code, a.make, a.model, a.serial, a.vendor, ...(a.tags || [])]
+      .filter(Boolean).join(" ").toLowerCase();
+    if (!words.every(w => hay.includes(w))) continue;
+    // Rank: name starts with the query, then name contains every word, then anything else.
+    const q = words.join(" ");
+    const score = name.startsWith(q) ? 0 : words.every(w => name.includes(w)) ? 1 : 2;
+    scored.push({ a, score });
+  }
+  scored.sort((x, y) => x.score - y.score || (x.a.name || "").localeCompare(y.a.name || ""));
+  return scored.slice(0, limit).map(s => s.a);
+}
+
 // USB / Bluetooth barcode scanners act as keyboards: they "type" the code very
 // fast and press Enter. This hook spots that pattern anywhere on the page
 // (ignoring normal typing in inputs) and calls onScan(code).

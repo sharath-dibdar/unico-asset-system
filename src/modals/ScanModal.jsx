@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CatIcon } from "../components/Icons.jsx";
 import { C, CATS, CHECKOUT_PURPOSES } from "../constants.js";
 import { Btn, Modal, Label, AssigneeSelect } from "../components/UI.jsx";
-import { getDetector, findAssetByScan, useScannerWedge } from "../lib/scanner.js";
+import { getDetector, findAssetByScan, searchAssets, useScannerWedge } from "../lib/scanner.js";
 
 export default function ScanModal({ assets, checkouts, initialCode, onBulkCheckout, onBulkReturn, onViewDetails, onClose }) {
   const videoRef    = useRef(null);
@@ -20,6 +20,7 @@ export default function ScanModal({ assets, checkouts, initialCode, onBulkChecko
   const [busy,     setBusy]     = useState(false);
   const [done,     setDone]     = useState("");    // success message
   const [typed,    setTyped]    = useState("");
+  const [hi,       setHi]       = useState(-1);    // highlighted suggestion (arrow keys)
   const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
   useEffect(() => { cartIdsRef.current = new Set(cart.map(a => a.id)); }, [cart]);
@@ -42,9 +43,13 @@ export default function ScanModal({ assets, checkouts, initialCode, onBulkChecko
       lastScanRef.current = { code: key, t: now };
     }
     const asset = findAssetByScan(assets, value);
-    if (!asset) {
-      flashMsg("notfound", `"${value}" doesn't match any asset code or serial number`);
-    } else if (cartIdsRef.current.has(asset.id)) {
+    if (!asset) flashMsg("notfound", `"${value}" doesn't match any asset code or serial number`);
+    else addAsset(asset);
+  }
+  handleRef.current = handleCode;
+
+  function addAsset(asset) {
+    if (cartIdsRef.current.has(asset.id)) {
       flashMsg("dup", `${asset.name} already added`);
     } else if (asset.status === "retired") {
       flashMsg("retired", `${asset.name} is retired — can't process`);
@@ -55,7 +60,29 @@ export default function ScanModal({ assets, checkouts, initialCode, onBulkChecko
       flashMsg("added", `✓ Added ${asset.name}`);
     }
   }
-  handleRef.current = handleCode;
+
+  // Name search in the code box — for labels the camera can't read.
+  const matches = typed.trim().length >= 2 && !findAssetByScan(assets, typed) ? searchAssets(assets, typed) : [];
+
+  function pick(asset) { addAsset(asset); setTyped(""); }
+
+  function submitTyped() {
+    const value = typed.trim();
+    if (!value) return;
+    // An exact code/serial always wins (that's what a hardware scanner sends).
+    if (findAssetByScan(assets, value)) { handleCode(value); setTyped(""); return; }
+    if (hi >= 0 && matches[hi]) return pick(matches[hi]);
+    if (matches.length === 1) return pick(matches[0]);
+    if (matches.length > 1) return flashMsg("dup", `${matches.length} matches — pick one from the list`);
+    handleCode(value); setTyped("");
+  }
+
+  function onTypedKey(e) {
+    if (!matches.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setHi(i => Math.min(i + 1, matches.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHi(i => Math.max(i - 1, -1)); }
+    else if (e.key === "Escape" && typed) { e.preventDefault(); e.stopPropagation(); setTyped(""); }
+  }
 
   // Hardware scanner anywhere on the page (when the code box isn't focused).
   useScannerWedge(code => handleRef.current(code));
@@ -151,10 +178,40 @@ export default function ScanModal({ assets, checkouts, initialCode, onBulkChecko
         )}
 
         {/* Typed codes, or a USB/Bluetooth scanner with this box focused */}
-        <form onSubmit={e => { e.preventDefault(); handleCode(typed); setTyped(""); }} style={{ display:"flex", gap:8 }}>
-          <input value={typed} onChange={e => setTyped(e.target.value)} placeholder="Scan with a barcode scanner, or type a code / serial" autoFocus={!touch} autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="go" />
-          <Btn onClick={() => { handleCode(typed); setTyped(""); }} variant="secondary" style={{ flexShrink:0 }}>Add</Btn>
-        </form>
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          <form onSubmit={e => { e.preventDefault(); submitTyped(); }} style={{ display:"flex", gap:8 }}>
+            <input value={typed} onChange={e => { setTyped(e.target.value); setHi(-1); }} onKeyDown={onTypedKey} placeholder="Scan, or type a code, serial or item name" autoFocus={!touch} autoComplete="off" spellCheck={false} enterKeyHint="go" />
+            <Btn onClick={submitTyped} variant="secondary" style={{ flexShrink:0 }}>Add</Btn>
+          </form>
+          {typed.trim().length >= 2 && !findAssetByScan(assets, typed) && (
+            matches.length === 0
+              ? <div style={{ fontSize:12, color:C.mu, padding:"4px 2px" }}>No assets match "{typed.trim()}"</div>
+              : (
+                <div role="listbox" style={{ border:`1px solid ${C.br}`, borderRadius:10, overflow:"hidden", maxHeight:280, overflowY:"auto" }}>
+                  {matches.map((a, i) => {
+                    const inCart  = cart.some(c => c.id === a.id);
+                    const retired = a.status === "retired";
+                    const tag = inCart ? "Added" : retired ? "Retired" : a.status === "in_use" ? "Check in" : "Check out";
+                    const tagColor = inCart ? C.mu : retired ? C.err : a.status === "in_use" ? C.ok : C.ac2;
+                    return (
+                      <button key={a.id} type="button" role="option" aria-selected={i === hi} disabled={inCart || retired}
+                        onMouseDown={e => e.preventDefault()} onClick={() => pick(a)} onMouseEnter={() => setHi(i)}
+                        style={{ display:"flex", alignItems:"center", gap:10, width:"100%", textAlign:"left", padding:"9px 12px", border:"none", borderTop:i ? `1px solid ${C.br}` : "none", background:i === hi ? C.el : "transparent", color:C.tx, cursor:inCart || retired ? "default" : "pointer", opacity:inCart || retired ? 0.55 : 1, font:"inherit" }}>
+                        <span style={{ fontSize:16, flexShrink:0 }}><CatIcon cat={a.cat} /></span>
+                        <span style={{ flex:1, minWidth:0 }}>
+                          <span style={{ display:"block", fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</span>
+                          <span style={{ display:"block", fontSize:11, color:C.mu, fontFamily:"'Noto Sans Mono',monospace", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                            {[a.code, [a.make, a.model].filter(Boolean).join(" "), a.serial && a.serial !== "N/A" ? `S/N ${a.serial}` : ""].filter(Boolean).join(" · ")}
+                          </span>
+                        </span>
+                        <span style={{ fontSize:10.5, fontWeight:700, color:tagColor, flexShrink:0 }}>{tag}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+          )}
+        </div>
         {error && flash && <div style={{ textAlign:"center", fontSize:12.5, fontWeight:600, color:"#fff", background:flashColors[flash.type], padding:"7px 10px", borderRadius:8 }}>{flash.text}</div>}
 
         {done && <div style={{ textAlign:"center", fontSize:13, color:C.ok, fontWeight:600 }}>{done}</div>}
